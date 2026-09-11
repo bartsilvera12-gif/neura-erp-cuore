@@ -43,6 +43,10 @@ export interface ComandaItem {
   es_mitad_mitad?: boolean;
   mitad_1_nombre?: string | null;
   mitad_2_nombre?: string | null;
+  /** Ingredientes extra pedidos ("Agregar aceitunas"). */
+  ingredientes_agregar?: string[] | null;
+  /** Ingredientes retirados ("Sin cebolla"). */
+  ingredientes_quitar?: string[] | null;
 }
 
 export interface ComandaCard {
