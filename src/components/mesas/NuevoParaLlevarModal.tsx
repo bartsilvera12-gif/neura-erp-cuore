@@ -18,25 +18,42 @@ export interface NuevoParaLlevarModalProps {
   onCerrar: () => void;
 }
 
-/**
- * Atajos de nota. Cubren casi todos los casos sin escribir, que en el mostrador
- * con gente esperando es la diferencia entre cargarla y no cargarla.
- */
-const NOTAS_RAPIDAS = ["Delivery", "Retira en el local"];
+type Modalidad = "delivery" | "retira";
 
 const inputBase =
   "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 hover:border-[#4FAEB2]/60 focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20";
 
 export default function NuevoParaLlevarModal({ onCreado, onCerrar }: NuevoParaLlevarModalProps) {
   const [nombre, setNombre] = useState("");
-  const [nota, setNota] = useState("");
+  const [modalidad, setModalidad] = useState<Modalidad>("retira");
+  const [direccion, setDireccion] = useState("");
+  const [notaExtra, setNotaExtra] = useState("");
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function crear() {
     setError(null);
+    // Delivery sin dirección no llega. Se pide antes de encolar el pedido a
+    // cocina, no después: si sale sin dirección hay que llamar al cliente.
+    if (modalidad === "delivery" && direccion.trim().length === 0) {
+      setError("La dirección de entrega es obligatoria para delivery.");
+      return;
+    }
+    // Componemos la nota que va a cocina en un formato que el ticket sabe leer:
+    //   Delivery: <dirección>      → "COMANDA - DELIVERY" + bloque de dirección
+    //   Retira en el local         → "COMANDA - HORNO"
+    // Cualquier nota extra viaja después, entre paréntesis.
+    const partes: string[] = [];
+    if (modalidad === "delivery") {
+      partes.push(`Delivery: ${direccion.trim()}`);
+    } else {
+      partes.push("Retira en el local");
+    }
+    if (notaExtra.trim().length > 0) partes.push(`(${notaExtra.trim()})`);
+    const notaFinal = partes.join(" ");
+
     setCreando(true);
-    const r = await crearParaLlevar(nombre.trim() || null, nota.trim() || null);
+    const r = await crearParaLlevar(nombre.trim() || null, notaFinal);
     setCreando(false);
     if (!r.success) { setError(r.error); return; }
     onCreado(r.sesion.id);
@@ -74,35 +91,55 @@ export default function NuevoParaLlevarModal({ onCreado, onCerrar }: NuevoParaLl
             onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
           />
 
-          {/* La nota sale impresa y recuadrada en la comanda: es lo que le dice
-              a cocina si esto es delivery, y de eso depende que avisen a tiempo
-              para llamar al repartidor. */}
-          <label className="mt-3 block text-xs font-medium text-slate-600">Nota para cocina</label>
-          <div className="mt-1 flex flex-wrap gap-2">
-            {NOTAS_RAPIDAS.map((n) => (
+          {/* Modalidad: define el título de la comanda y si hace falta pedir
+              la dirección. Se elige antes de la dirección para que el campo
+              aparezca sólo cuando corresponde. */}
+          <label className="mt-4 block text-xs font-medium text-slate-600">Modalidad</label>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            {(["retira", "delivery"] as Modalidad[]).map((m) => (
               <button
-                key={n}
+                key={m}
                 type="button"
                 disabled={creando}
-                onClick={() => setNota((v) => (v === n ? "" : n))}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  nota === n
+                onClick={() => setModalidad(m)}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  modalidad === m
                     ? "border-amber-500 bg-amber-50 text-amber-800"
                     : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                {n}
+                {m === "delivery" ? "Delivery" : "Retira en el local"}
               </button>
             ))}
           </div>
+
+          {modalidad === "delivery" && (
+            <>
+              <label className="mt-3 block text-xs font-medium text-slate-600">
+                Dirección de entrega <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                placeholder="Ej: Avda. España 742 c/ San José"
+                maxLength={200}
+                disabled={creando}
+                className={`mt-1 text-sm ${inputBase}`}
+                onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
+              />
+            </>
+          )}
+
+          <label className="mt-3 block text-xs font-medium text-slate-600">Nota extra (opcional)</label>
           <input
             type="text"
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            placeholder="Ej: delivery, retira 21:00"
+            value={notaExtra}
+            onChange={(e) => setNotaExtra(e.target.value)}
+            placeholder="Ej: sin picante, entregar 21:00"
             maxLength={200}
             disabled={creando}
-            className={`mt-2 text-sm ${inputBase}`}
+            className={`mt-1 text-sm ${inputBase}`}
             onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
           />
 
