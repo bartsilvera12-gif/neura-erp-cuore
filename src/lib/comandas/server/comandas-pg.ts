@@ -94,7 +94,7 @@ async function armarCards(sb: Sb, empresaId: string, comandas: ComandaRow[]): Pr
   const legacyIds = comandas.filter((c) => !c.batch_id).map((c) => c.id);
 
   type ItemRow = Record<string, unknown>;
-  const ITEM_SEL = "id, comanda_id, producto_id, producto_nombre, cantidad, precio_unitario, observacion, total, estado, produccion_batch_id, es_mitad_mitad, mitad_1_nombre, mitad_2_nombre";
+  const ITEM_SEL = "id, comanda_id, producto_id, producto_nombre, cantidad, precio_unitario, observacion, total, estado, produccion_batch_id, es_mitad_mitad, mitad_1_nombre, mitad_2_nombre, ingredientes_agregar, ingredientes_quitar";
   const itemsByBatch = new Map<string, ItemRow[]>();
   const itemsByLegacyComanda = new Map<string, ItemRow[]>();
   const allProductoIds: string[] = [];
@@ -135,6 +135,8 @@ async function armarCards(sb: Sb, empresaId: string, comandas: ComandaRow[]): Pr
       es_mitad_mitad: it.es_mitad_mitad === true,
       mitad_1_nombre: (it.mitad_1_nombre as string) ?? null,
       mitad_2_nombre: (it.mitad_2_nombre as string) ?? null,
+      ingredientes_agregar: Array.isArray(it.ingredientes_agregar) ? (it.ingredientes_agregar as string[]) : null,
+      ingredientes_quitar: Array.isArray(it.ingredientes_quitar) ? (it.ingredientes_quitar as string[]) : null,
     };
   }
 
