@@ -1369,6 +1369,8 @@ export async function agregarItemSesionPg(params: {
   precioUnitario?: number | null;
   displayName?: string | null;
   mitad?: MitadMitadInput | null;
+  ingredientesAgregar?: string[] | null;
+  ingredientesQuitar?: string[] | null;
 }): Promise<MesaSesionItem> {
   const sb = createServiceRoleClientWithDbSchema(params.schema);
 
@@ -1405,6 +1407,8 @@ export async function agregarItemSesionPg(params: {
     estado: "pendiente",
     creado_por: params.creadoPor,
     ...mitadInsertCols(params.displayName ?? null, params.mitad),
+    ingredientes_agregar: params.ingredientesAgregar ?? [],
+    ingredientes_quitar: params.ingredientesQuitar ?? [],
   }).select(ITEM_COLS).single();
   if (ins.error) throw new Error(ins.error.message);
   const creado = mapItem(ins.data as Record<string, unknown>);
