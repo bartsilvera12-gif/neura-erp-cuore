@@ -148,7 +148,14 @@ async function armarCards(sb: Sb, empresaId: string, comandas: ComandaRow[]): Pr
     if (c.batch_id) {
       rows = itemsByBatch.get(c.batch_id) ?? [];
       // Plancha = solo sus ítems; pizzería = copia completa del batch.
+      // Cada comanda muestra SÓLO los ítems de su sector: la del horno con
+      // pizzas, calzones y adicionales (sector 'pizzeria'); la de plancha con
+      // hamburguesas y lomitos ('plancha'). Antes la copia de pizzería
+      // arrastraba todo el pedido (bebidas incluidas), como pedía Caribeña,
+      // pero en Cucina del Cuore la comanda tiene que ser sólo lo que
+      // realmente prepara ese sector.
       if (sector === "plancha") rows = rows.filter((it) => sectorByProd.get(String(it.producto_id)) === "plancha");
+      else if (sector === "pizzeria") rows = rows.filter((it) => sectorByProd.get(String(it.producto_id)) === "pizzeria");
     } else {
       rows = itemsByLegacyComanda.get(c.id) ?? [];
     }
