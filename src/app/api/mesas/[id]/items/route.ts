@@ -22,12 +22,19 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
     if (!Number.isFinite(cantidad) || cantidad <= 0) return NextResponse.json(errorResponse("Cantidad inválida."), { status: 400 });
     const observacion = o.observacion == null || o.observacion === "" ? null : String(o.observacion).slice(0, 2000);
     const { precioUnitario, displayName, mitad } = parseMitadFromBody(o);
+    const parseIngList = (raw: unknown): string[] => {
+      if (!Array.isArray(raw)) return [];
+      return raw.map((x) => String(x ?? "").trim()).filter((s) => s.length > 0).slice(0, 40);
+    };
+    const ingredientesAgregar = parseIngList(o.ingredientes_agregar);
+    const ingredientesQuitar  = parseIngList(o.ingredientes_quitar);
 
     const schema = await fetchDataSchemaForEmpresaId(auth.empresa_id);
     const item = await agregarItemPg({
       schema, empresaId: auth.empresa_id, mesaId: id,
       productoId, cantidad, observacion, creadoPor: auth.usuarioCatalogId ?? null,
       precioUnitario, displayName, mitad,
+      ingredientesAgregar, ingredientesQuitar,
     });
     return NextResponse.json(successResponse({ item }));
   } catch (err) {

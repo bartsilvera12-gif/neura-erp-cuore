@@ -31,7 +31,7 @@ export default function MesaProductPicker({
    * producto para render instantáneo en la lista de la mesa.
    */
   onAdd: (
-    producto: { id: string; nombre: string; precio_venta: number },
+    producto: { id: string; nombre: string; precio_venta: number; categoria: string | null },
     cantidad: number,
     observacion: string | null
   ) => Promise<boolean>;
@@ -86,7 +86,7 @@ export default function MesaProductPicker({
     setFeedback(`${prod.nombre} agregado`);
     setSel(null);
     setTimeout(() => setFeedback(null), 1500);
-    void onAdd({ id: prod.id, nombre: prod.nombre, precio_venta: prod.precio_venta }, cant, obs.trim() || null);
+    void onAdd({ id: prod.id, nombre: prod.nombre, precio_venta: prod.precio_venta, categoria: prod.categoria }, cant, obs.trim() || null);
   }
 
   return (

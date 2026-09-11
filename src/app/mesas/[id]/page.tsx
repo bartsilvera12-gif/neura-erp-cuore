@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import MesaProductPicker from "@/components/mesas/MesaProductPicker";
 import NotaCocina from "@/components/mesas/NotaCocina";
 import MitadMitadPicker, { type MitadMitadResult } from "@/components/ventas/MitadMitadPicker";
+import PersonalizarPizzaModal, { type PersonalizarPizzaResult } from "@/components/ventas/PersonalizarPizzaModal";
 import CobroCuenta from "@/components/ventas/CobroCuenta";
 import { getModuleAccessCached } from "@/lib/modulos/module-access-cache";
 import {
@@ -44,6 +45,15 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
    */
   const [cambiandoItem, setCambiandoItem] = useState<MesaSesionItem | null>(null);
   const [mitadOpen, setMitadOpen] = useState(false);
+  /**
+   * Pizza que espera personalización antes de sumarse al pedido. Cuando el mozo
+   * elige un sabor de la categoría "Pizzas", en vez de agregarlo directo se
+   * guarda acá y se abre el modal de personalización; al confirmar (o cancelar)
+   * se resuelve el ciclo.
+   */
+  const [pizzaPendiente, setPizzaPendiente] = useState<
+    { id: string; nombre: string; precio_venta: number } | null
+  >(null);
   const [busy, setBusy] = useState(false);
   /** Sesión viva de la mesa: es la que identifica la cuenta en la pantalla de cobro. */
   const [sesionId, setSesionId] = useState<string | null>(null);
@@ -92,7 +102,8 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
   async function onAdd(
     prod: { id: string; nombre: string; precio_venta: number },
     cantidad: number,
-    observacion: string | null
+    observacion: string | null,
+    personalizacion?: { ingredientes_agregar: string[]; ingredientes_quitar: string[] }
   ): Promise<boolean> {
     setError(null);
     const tmpId = `tmp-${++tmpCounter.current}`;
@@ -105,7 +116,11 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
     markPending(tmpId, true);
     setMesaEstado((e) => (e === "libre" ? "ocupada" : e));
 
-    const r = await agregarItemMesa(id, { producto_id: prod.id, cantidad, observacion });
+    const r = await agregarItemMesa(id, {
+      producto_id: prod.id, cantidad, observacion,
+      ingredientes_agregar: personalizacion?.ingredientes_agregar,
+      ingredientes_quitar: personalizacion?.ingredientes_quitar,
+    });
     if (!r.success) {
       setItems((prev) => prev.filter((i) => i.id !== tmpId)); // revertir
       markPending(tmpId, false);
@@ -514,10 +529,32 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
             setPickerOpen(false);
             return onCambiarProducto(item, { producto_id: prod.id });
           }
-          return onAdd(prod, cantidad, observacion);
+          // Categoría "Pizzas": abrimos el modal de personalización en vez de
+          // agregar directo. La cantidad y la observación del picker se
+          // descartan — el modal las vuelve a preguntar con opciones extra.
+          if ((prod.categoria ?? "").toLowerCase() === "pizzas") {
+            setPizzaPendiente({ id: prod.id, nombre: prod.nombre, precio_venta: prod.precio_venta });
+            setPickerOpen(false);
+            return true;
+          }
+          return onAdd({ id: prod.id, nombre: prod.nombre, precio_venta: prod.precio_venta }, cantidad, observacion);
         }}
       />
       <MitadMitadPicker open={mitadOpen} onClose={() => setMitadOpen(false)} onConfirm={onAddMitad} />
+      <PersonalizarPizzaModal
+        open={pizzaPendiente !== null}
+        productoNombre={pizzaPendiente?.nombre ?? ""}
+        onClose={() => setPizzaPendiente(null)}
+        onConfirm={(r: PersonalizarPizzaResult) => {
+          const p = pizzaPendiente;
+          setPizzaPendiente(null);
+          if (!p) return;
+          void onAdd(p, r.cantidad, r.observacion, {
+            ingredientes_agregar: r.ingredientes_agregar,
+            ingredientes_quitar: r.ingredientes_quitar,
+          });
+        }}
+      />
     </div>
   );
 }

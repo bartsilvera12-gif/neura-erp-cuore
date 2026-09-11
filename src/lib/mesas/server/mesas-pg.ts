@@ -516,6 +516,10 @@ export async function agregarItemPg(params: {
   /** Nombre a mostrar (ej. "Pizza mitad y mitad"). */
   displayName?: string | null;
   mitad?: MitadMitadInput | null;
+  /** Ingredientes extra pedidos ("Agregar aceitunas"). */
+  ingredientesAgregar?: string[] | null;
+  /** Ingredientes retirados ("Sin cebolla"). */
+  ingredientesQuitar?: string[] | null;
 }): Promise<MesaSesionItem> {
   const sb = createServiceRoleClientWithDbSchema(params.schema);
   const sesion = await ensureSesionAbierta(sb, params.empresaId, params.mesaId, params.creadoPor);
@@ -554,6 +558,8 @@ export async function agregarItemPg(params: {
       estado: "pendiente",
       creado_por: params.creadoPor,
       ...mitadInsertCols(params.displayName ?? null, params.mitad),
+      ingredientes_agregar: params.ingredientesAgregar ?? [],
+      ingredientes_quitar: params.ingredientesQuitar ?? [],
     })
     .select(ITEM_COLS)
     .single();

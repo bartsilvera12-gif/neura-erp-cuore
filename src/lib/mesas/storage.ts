@@ -70,6 +70,10 @@ export interface MitadItemPayload {
   precio_unitario?: number;
   display_name?: string;
   mitad?: { producto1_id: string; producto2_id: string; nombre1: string; nombre2: string };
+  /** Ingredientes extra pedidos ("Agregar aceitunas"). */
+  ingredientes_agregar?: string[];
+  /** Ingredientes retirados ("Sin cebolla"). */
+  ingredientes_quitar?: string[];
 }
 
 export function agregarItemMesa(
@@ -77,6 +81,15 @@ export function agregarItemMesa(
   payload: { producto_id: string; cantidad: number; observacion: string | null } & MitadItemPayload
 ) {
   return call<{ item: MesaSesionItem }>(`/api/mesas/${encodeURIComponent(mesaId)}/items`, "POST", payload);
+}
+
+/** Catálogo global de ingredientes de la empresa; usado por el modal de personalización. */
+export async function getIngredientesCatalogo(): Promise<
+  { success: true; ingredientes: Array<{ id: string; nombre: string; precio: number }> } | { success: false; error: string }
+> {
+  return call<{ ingredientes: Array<{ id: string; nombre: string; precio: number }> }>(
+    "/api/ingredientes", "GET"
+  );
 }
 
 export function actualizarItemMesa(
