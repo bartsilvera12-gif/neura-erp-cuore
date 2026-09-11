@@ -1,0 +1,500 @@
+@import "tailwindcss";
+
+/**
+ * En Tailwind v4 el variante `dark:` se dispara por defecto con
+ * `@media (prefers-color-scheme: dark)`, NO con la clase `.dark`.
+ *
+ * El ERP está forzado a modo día (ver components/ThemeProvider.tsx), y ese
+ * provider se limita a quitar la clase `.dark` del <html> — algo que no tenía
+ * ningún efecto, porque la clase no era lo que activaba el variante. Resultado:
+ * a cualquiera con el sistema operativo en modo oscuro se le aplicaban los
+ * `dark:text-*` sobre fondos `bg-white` fijos, y el texto quedaba casi
+ * invisible (se veía sobre todo en las tablas del dashboard).
+ *
+ * Atando el variante a la clase, y no habiendo clase, `dark:` no se aplica
+ * nunca. Si alguna vez se reintroduce el modo oscuro, esto es lo primero
+ * que hay que revisar.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Neura ERP — Zentra (paleta turquesa rediseño 2026: #4FAEB2 primary) */
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --foreground-muted: #475569;
+  --card: #FFFFFF;
+  /* Sidebar Zentra: deep teal #0B3A3D con elevated #104A4E. */
+  --zentra-sidebar: #0B3A3D;
+  --zentra-sidebar-elevated: #104A4E;
+  --zentra-sidebar-border: rgba(255, 255, 255, 0.08);
+  --zentra-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --zentra-sidebar-active: rgba(255, 255, 255, 0.18);
+  --zentra-sidebar-accent: #4FAEB2;
+  --zentra-login-bg-mid: #145053;
+  --zentra-login-bg-deep: #0a3437;
+  --sidebar: var(--zentra-sidebar);
+  --primary: #4FAEB2;
+  --primary-hover: #3F8E91;
+  --primary-label: #3F8E91;
+  --primary-light: #E5F4F4;
+  --border: #E2E8F0;
+  /* Badges de estado */
+  --badge-success-bg: #DCFCE7;
+  --badge-success-text: #166534;
+  --badge-warning-bg: #FEF9C3;
+  --badge-warning-text: #854D0E;
+  --badge-error-bg: #FEE2E2;
+  --badge-error-text: #991B1B;
+}
+
+.dark {
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+  --foreground-muted: #94A3B8;
+  --card: #1E293B;
+  /* Lateral ERP: misma identidad en modo oscuro */
+  --sidebar: var(--zentra-sidebar);
+  --primary: #4FAEB2;
+  --primary-hover: #3F8E91;
+  --primary-label: #3F8E91;
+  --primary-light: #1E4D4F;
+  --border: #334155;
+  --badge-success-bg: #14532D;
+  --badge-success-text: #86EFAC;
+  --badge-warning-bg: #713F12;
+  --badge-warning-text: #FDE047;
+  --badge-error-bg: #7F1D1D;
+  --badge-error-text: #FCA5A5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-foreground-muted: var(--foreground-muted);
+  --font-sans: var(--font-plus-jakarta), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+}
+
+/**
+ * Impresión cupones físicos (/sorteos/[id]/imprimir-cupones): el AppShell usa h-svh + overflow
+ * oculto en ancestros; en @media print eso suele dejar casi en blanco la hoja salvo cabecera/pie del navegador.
+ * La clase la agrega PhysicalCouponsPrintClient al montar.
+ */
+@media print {
+  html.physical-coupons-print-page,
+  html.physical-coupons-print-page body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  html.physical-coupons-print-page #neura-sidebar,
+  html.physical-coupons-print-page #neura-header {
+    display: none !important;
+  }
+
+  html.physical-coupons-print-page #neura-app-shell {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  html.physical-coupons-print-page #neura-main-column {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  html.physical-coupons-print-page #neura-main-content {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  html.physical-coupons-print-page .physical-coupons-print-area {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+}
+
+/* Fondo pantalla login (solo layout visual) */
+.zentra-login-bg {
+  background:
+    radial-gradient(ellipse 100% 70% at 50% 0%, rgba(79, 174, 178, 0.14), transparent 52%),
+    linear-gradient(168deg, var(--zentra-login-bg-mid) 0%, var(--zentra-sidebar) 42%, var(--zentra-login-bg-deep) 100%);
+}
+
+/* =============================================================================
+   Override de colores brand — Zentra (#4FAEB2)
+   Reemplaza usos hex literales (Tailwind arbitrary values) en toda la app
+   sin tocar 293+ archivos. Solo afecta clases existentes; no toca semánticos
+   (green/red/amber/etc.).
+   Migrado de #14B8A6 a #4FAEB2 (rediseño Zentra 2026).
+   ============================================================================= */
+.bg-\[\#0EA5E9\]   { background-color: #4FAEB2 !important; }
+.bg-\[\#0284C7\]   { background-color: #3F8E91 !important; }
+.bg-\[\#38BDF8\]   { background-color: #4FAEB2 !important; }
+.bg-\[\#14B8A6\]   { background-color: #4FAEB2 !important; }
+.bg-\[\#0F9488\]   { background-color: #3F8E91 !important; }
+.hover\:bg-\[\#0EA5E9\]:hover { background-color: #4FAEB2 !important; }
+.hover\:bg-\[\#0284C7\]:hover { background-color: #3F8E91 !important; }
+.hover\:bg-\[\#14B8A6\]:hover { background-color: #4FAEB2 !important; }
+.hover\:bg-\[\#0F9488\]:hover { background-color: #3F8E91 !important; }
+
+.text-\[\#0EA5E9\] { color: #4FAEB2 !important; }
+.text-\[\#0284C7\] { color: #3F8E91 !important; }
+.text-\[\#38BDF8\] { color: #4FAEB2 !important; }
+.text-\[\#14B8A6\] { color: #4FAEB2 !important; }
+.text-\[\#0F9488\] { color: #3F8E91 !important; }
+.hover\:text-\[\#0284C7\]:hover { color: #3F8E91 !important; }
+
+.border-\[\#0EA5E9\] { border-color: #4FAEB2 !important; }
+.border-\[\#0284C7\] { border-color: #3F8E91 !important; }
+.border-\[\#14B8A6\] { border-color: #4FAEB2 !important; }
+
+.focus\:ring-\[\#0EA5E9\]:focus { --tw-ring-color: #4FAEB2 !important; }
+.focus\:border-\[\#0EA5E9\]:focus { border-color: #4FAEB2 !important; }
+.focus\:ring-\[\#14B8A6\]:focus { --tw-ring-color: #4FAEB2 !important; }
+.focus\:border-\[\#14B8A6\]:focus { border-color: #4FAEB2 !important; }
+
+/* =============================================================================
+   Sidebar — gradiente sutil estilo Zentra (top más claro, bottom más oscuro).
+   Base #0B3A3D con elevated #104A4E. La luz cae hacia esquina superior derecha,
+   sombra hacia abajo.
+   ============================================================================= */
+.zentra-sidebar-bg {
+  background:
+    radial-gradient(ellipse 120% 60% at 100% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
+    radial-gradient(ellipse 120% 60% at 0% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
+    linear-gradient(180deg, #104A4E 0%, #0B3A3D 35%, #082A2D 100%);
+}
+
+/* =============================================================================
+   Sidebar scrollbar — combinado con la paleta teal del menú lateral.
+   Track casi invisible (deja ver el gradient), thumb turquesa con transparencia
+   que se intensifica en hover. Aplicar a cualquier scroll container dentro del
+   sidebar oscuro.
+
+   Firefox: scrollbar-width / scrollbar-color (estándar CSS).
+   Chrome/Safari/Edge: ::-webkit-scrollbar (pseudo-elementos).
+   ============================================================================= */
+.zentra-sidebar-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* WebKit (Chrome, Safari, Edge nuevo) */
+.zentra-sidebar-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.zentra-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.zentra-sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(79, 174, 178, 0.35);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+.zentra-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(79, 174, 178, 0.65);
+}
+
+.zentra-sidebar-scroll::-webkit-scrollbar-thumb:active {
+  background-color: rgba(79, 174, 178, 0.85);
+}
+
+.zentra-sidebar-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* =============================================================================
+   Dashboard — shell oscuro teal estilo Zentra
+   ============================================================================= */
+/* =============================================================================
+   Pantalla de carga global — fondo teal con gradiente sutil + pulse del logo
+   ============================================================================= */
+.app-loading-bg {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 30%, rgba(255, 255, 255, 0.08), transparent 55%),
+    linear-gradient(168deg, #5CB8BC 0%, #4FAEB2 45%, #3E8C90 100%);
+}
+
+/* Logo Z: las dos mitades se separan suavemente y vuelven a su sitio */
+.app-loading-z-top {
+  transform-origin: center;
+  animation: app-loading-z-top 2.2s ease-in-out infinite;
+}
+.app-loading-z-bot {
+  transform-origin: center;
+  animation: app-loading-z-bot 2.2s ease-in-out infinite;
+}
+@keyframes app-loading-z-top {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(6px, -6px); }
+}
+@keyframes app-loading-z-bot {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-6px, 6px); }
+}
+
+.app-loading-dots {
+  display: inline-block;
+  width: 1.6em;
+  text-align: left;
+  letter-spacing: 0;
+  animation: app-loading-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes app-loading-dots {
+  0%   { clip-path: inset(0 100% 0 0); }
+  25%  { clip-path: inset(0 66% 0 0); }
+  50%  { clip-path: inset(0 33% 0 0); }
+  75%  { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 100% 0 0); }
+}
+
+.zentra-dashboard-shell {
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(79, 174, 178, 0.06), transparent 60%),
+    #F8FAFC;
+}
+
+/* =============================================================================
+   Tablet / touch — targets táctiles cómodos (Redmi Pad 2 y tablets 11").
+   Se aplica SOLO en dispositivos de puntero grueso: @media (pointer: coarse).
+   - Desktop con mouse = pointer:fine → NO afectado (cumple "no romper desktop").
+   - Mobile/tablet (touch) → gana área de toque sin cambiar el diseño.
+   Solo usa min-height (eje vertical): no puede introducir overflow horizontal,
+   por eso es seguro respecto a los breakpoints actuales.
+   ============================================================================= */
+@media (pointer: coarse) {
+  /* Botones de acción dentro de tablas (Imprimir, Editar, etc.). min-height
+     solo surte efecto en botones/inline-flex (el patrón de estos controles);
+     en <a> inline planos es un no-op, así que no altera otros layouts. */
+  :where(table td, table th) :is(button, a) {
+    min-height: 38px;
+  }
+  /* Controles compactos marcados explícitamente (ej. chips de período del
+     dashboard). Centra el contenido manteniendo el estilo visual actual. */
+  .tap-comfort {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+
+
+
+/* =============================================================================
+   CAPA DE DISEÑO GLOBAL — profundidad, tipografía y materiales
+   -----------------------------------------------------------------------------
+   Todo lo de esta sección es transversal: sube el acabado de las ~115 pantallas
+   del ERP sin tocar los archivos de cada página. Si algo se ve distinto de golpe
+   en toda la app, es acá donde hay que mirar primero.
+   ============================================================================= */
+
+/**
+ * Escala de sombras.
+ *
+ * Tailwind trae sombras de un solo nivel y en negro puro; con 315 usos de
+ * `shadow-sm` sobre fondo claro el resultado era una app "plana": las tarjetas
+ * parecían pegadas al fondo en lugar de estar apoyadas encima.
+ *
+ * Estas son sombras en capas (contacto + difusión + ambiente) y tintadas hacia
+ * el slate-900 del texto en vez de negro. Al redefinir las variables de tema,
+ * cada `shadow-sm`/`shadow-md`/... existente en el código las hereda.
+ */
+@theme {
+  --shadow-2xs: 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-xs:  0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
+  --shadow-sm:  0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.06), 0 8px 20px -12px rgba(15, 23, 42, 0.10);
+  --shadow-md:  0 2px 4px rgba(15, 23, 42, 0.04), 0 6px 12px -2px rgba(15, 23, 42, 0.08), 0 16px 32px -16px rgba(15, 23, 42, 0.14);
+  --shadow-lg:  0 4px 8px rgba(15, 23, 42, 0.04), 0 12px 24px -4px rgba(15, 23, 42, 0.10), 0 28px 56px -24px rgba(15, 23, 42, 0.18);
+  --shadow-xl:  0 8px 16px rgba(15, 23, 42, 0.05), 0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 40px 80px -32px rgba(15, 23, 42, 0.22);
+  --shadow-2xl: 0 16px 32px rgba(15, 23, 42, 0.06), 0 32px 64px -12px rgba(15, 23, 42, 0.16), 0 64px 120px -40px rgba(15, 23, 42, 0.28);
+}
+
+/* Render de texto: sin esto la Plus Jakarta se ve engrosada en pantallas
+   no-retina, que es parte de la sensación de "sucio" en tablas densas. */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Los títulos ganan cuando el tracking baja; los números de tablas y KPIs,
+   cuando son de ancho fijo (no "bailan" al actualizarse). */
+h1, h2, h3 {
+  letter-spacing: -0.018em;
+}
+
+/* Fondo de la app: un gris plano deja las tarjetas blancas sin contraste.
+   Dos halos muy suaves (turquesa arriba a la izquierda, azul frío a la derecha)
+   dan aire sin ensuciar. `fixed` para que no se desplace con el scroll. */
+.zentra-app-bg {
+  background-color: #F6F8FB;
+  background-image:
+    radial-gradient(ellipse 900px 520px at 10% -10%, rgba(79, 174, 178, 0.10), transparent 62%),
+    radial-gradient(ellipse 760px 440px at 95% -4%, rgba(99, 132, 190, 0.07), transparent 64%);
+  background-attachment: fixed;
+}
+
+/* Barra de scroll del área de contenido: la nativa de Windows es gris ancha y
+   rompe el borde derecho de las tarjetas. */
+#neura-main-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.16) transparent;
+}
+#neura-main-content::-webkit-scrollbar { width: 11px; height: 11px; }
+#neura-main-content::-webkit-scrollbar-track { background: transparent; }
+#neura-main-content::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.15);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+#neura-main-content::-webkit-scrollbar-thumb:hover { background-color: rgba(15, 23, 42, 0.30); }
+
+/**
+ * Acá vivía una animación de entrada de página, y se quitó.
+ *
+ * Rompió los modales dos veces seguidas, por dos motivos distintos:
+ *
+ *   1. Con `translateY` y fill `both`, el elemento animado quedaba como
+ *      containing block de sus descendientes `position: fixed` — el valor final
+ *      `transform: none` no alcanza, porque la animación sigue aplicando. Los
+ *      modales se anclaban a la caja del contenido y el velo tapaba solo esa
+ *      zona.
+ *
+ *   2. Pasada a solo opacidad, seguía creando un contexto de apilado. El
+ *      `z-50` del modal quedaba encerrado dentro de ese contexto y no podía
+ *      superar el `z-40` del header, que es su tío en el árbol: el velo cubría
+ *      todo menos la barra de arriba.
+ *
+ * Cualquier animación sobre el contenedor de la página tiene este problema: las
+ * propiedades que valen la pena animar son justamente las que crean contexto de
+ * apilado. Un desvanecido de 0,28 s no compensa dejar todos los modales del ERP
+ * dependiendo de esa sutileza. Si alguna vez se quiere volver a intentar, hay
+ * que animar cada página por dentro, no su contenedor.
+ */
+
+/**
+ * Botones sólidos (oscuro y turquesa): un color plano se lee como un rectángulo
+ * pintado. Un degradé vertical mínimo + sombra de contacto los convierte en algo
+ * que parece pulsable. El `:is(button, a)` evita alcanzar contenedores o badges
+ * que casualmente usen el mismo color de fondo.
+ */
+:is(button, a):is(.bg-slate-900, .bg-\[\#4FAEB2\], .bg-\[\#0EA5E9\], .bg-\[\#14B8A6\]) {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0) 62%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16), 0 4px 12px -4px rgba(15, 23, 42, 0.30);
+}
+:is(button, a):is(.bg-slate-900, .bg-\[\#4FAEB2\], .bg-\[\#0EA5E9\], .bg-\[\#14B8A6\]):hover {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18), 0 6px 18px -4px rgba(15, 23, 42, 0.38);
+}
+:is(button, a):is(.bg-slate-900, .bg-\[\#4FAEB2\], .bg-\[\#0EA5E9\], .bg-\[\#14B8A6\]):active {
+  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.20);
+  transform: translateY(0.5px);
+}
+:is(button, a):disabled {
+  background-image: none;
+  box-shadow: none;
+}
+
+/* Filas de tabla: transición suave del hover que muchas ya declaran por clase. */
+tbody tr { transition: background-color 0.15s ease; }
+
+/* Cifras: ancho tabular en celdas numéricas y KPIs, para que las columnas
+   queden alineadas aunque cambien los dígitos. */
+.tabular-nums, td, th { font-variant-numeric: tabular-nums; }
+
+/* Respeta a quien pidió menos movimiento en el sistema operativo. */
+@media (prefers-reduced-motion: reduce) {
+  .app-loading-z-top,
+  .app-loading-z-bot,
+  .app-loading-dots {
+    animation: none !important;
+  }
+  * { transition-duration: 0.01ms !important; }
+}
+
+/* =============================================================================
+   Clases reutilizables de página.
+   Pensadas para ir reemplazando las cabeceras y tarjetas escritas a mano.
+   ============================================================================= */
+
+/* Tarjeta base: borde hairline + sombra en capas + recorte del contenido. */
+.z-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background-color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Cabecera de sección dentro de una tarjeta. */
+.z-card-head {
+  border-bottom: 1px solid #F1F5F9;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.7), rgba(255, 255, 255, 0));
+}
+
+/* Encabezado de tabla: fondo tenue y línea inferior más marcada que las filas,
+   para que la cabecera se despegue del cuerpo. */
+.z-thead {
+  background: linear-gradient(180deg, #FBFCFE, #F5F7FA);
+  border-bottom: 1px solid #E2E8F0;
+}
+
+/* Etiqueta chica en versalitas, el patrón que ya se repetía suelto en filtros. */
+.z-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748B;
+}
+
+/* -----------------------------------------------------------------------------
+   Retoques transversales sobre patrones que ya estaban repetidos en el código.
+   Se enganchan a las clases existentes (selector elemento+clase, que pesa más
+   que la utilidad de Tailwind) para no tener que editar decenas de archivos.
+   -------------------------------------------------------------------------- */
+
+/* Cabeceras de tabla: el gris plano las dejaba al mismo nivel que las filas.
+   Degradé mínimo + línea inferior firme, para que la cabecera "sostenga" la
+   tabla. Alcanza a los ~25 <thead> que ya usaban bg-slate-50 / bg-gray-50. */
+thead:is(.bg-slate-50, .bg-gray-50, .bg-slate-50\/80) {
+  background-image: linear-gradient(180deg, #FBFCFE 0%, #F1F5F9 100%);
+  box-shadow: inset 0 -1px 0 #E2E8F0;
+}
+
+/* Fondos de modal: el velo negro sólido recorta duro. Desenfocar lo que queda
+   detrás separa las capas y es lo que hace que un modal se sienta "encima". */
+:is(.bg-black\/40, .bg-black\/45, .bg-black\/50, .bg-black\/75, .bg-black\/80).fixed.inset-0 {
+  backdrop-filter: blur(3px) saturate(120%);
+  -webkit-backdrop-filter: blur(3px) saturate(120%);
+}
