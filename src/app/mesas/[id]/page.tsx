@@ -460,10 +460,10 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
       {/* El cobro vive acá, en la misma pantalla de la mesa. Tener que salir a
           Caja para cobrar la cuenta que ya se tenía abierta era pedirle al
           cajero que recorriera el sistema para terminar donde ya estaba. */}
-      {/* El cobro va siempre a la vista, sin desplegar. Estaba detrás de un
-          botón que lo abría más abajo, fuera de la pantalla: se apretaba y
-          parecía que no pasaba nada. Un cobro escondido no sirve de nada. */}
-      {hayItems && cuentaId && puedeCobrar === true && (
+      {/* Cobro directo desde la mesa deshabilitado temporalmente para Cucina
+          del Cuore: el cierre pasa por Caja. Cuando quieran devolverlo, sacar
+          este bloque de comentario. */}
+      {false && hayItems && cuentaId && puedeCobrar === true && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="mb-4 text-sm font-semibold text-slate-800">Cobrar esta mesa</p>
           <CobroCuenta

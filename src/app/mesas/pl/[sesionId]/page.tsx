@@ -352,11 +352,9 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
         </div>
       </div>
 
-      {/* Mismo criterio que en la mesa: quien puede cobrar lo hace acá mismo, y
-          el mozo —que no tiene permiso de ventas— lo pasa a caja. Hasta ahora un
-          Para llevar no llegaba nunca a la caja y había que volver a cargarlo a
-          mano en Nueva venta: una vez para la cocina y otra para cobrar. */}
-      {hayItems && puedeCobrar === true && (
+      {/* Cobro directo deshabilitado temporalmente para Cucina del Cuore: el
+          cierre pasa por Caja. Cuando quieran devolverlo, sacar el `false &&`. */}
+      {false && hayItems && puedeCobrar === true && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="mb-4 text-sm font-semibold text-slate-800">Cobrar este pedido</p>
           <CobroCuenta
