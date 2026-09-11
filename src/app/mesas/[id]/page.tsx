@@ -8,7 +8,7 @@ import MesaProductPicker from "@/components/mesas/MesaProductPicker";
 import NotaCocina from "@/components/mesas/NotaCocina";
 import MitadMitadPicker, { type MitadMitadResult } from "@/components/ventas/MitadMitadPicker";
 import PersonalizarPizzaModal, { type PersonalizarPizzaResult } from "@/components/ventas/PersonalizarPizzaModal";
-import CobroCuenta from "@/components/ventas/CobroCuenta";
+// import CobroCuenta from "@/components/ventas/CobroCuenta";  // cobro directo deshabilitado; el cierre pasa por Caja
 import { getModuleAccessCached } from "@/lib/modulos/module-access-cache";
 import {
   actualizarItemMesa, agregarItemMesa, cancelarCuentaMesa,
@@ -461,9 +461,10 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
           Caja para cobrar la cuenta que ya se tenía abierta era pedirle al
           cajero que recorriera el sistema para terminar donde ya estaba. */}
       {/* Cobro directo desde la mesa deshabilitado temporalmente para Cucina
-          del Cuore: el cierre pasa por Caja. Cuando quieran devolverlo, sacar
-          este bloque de comentario. */}
-      {false && hayItems && cuentaId && puedeCobrar === true && (
+          del Cuore: el cierre pasa por Caja. Cuando quieran devolverlo,
+          descomentar este bloque.
+
+      {hayItems && cuentaId && puedeCobrar === true && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="mb-4 text-sm font-semibold text-slate-800">Cobrar esta mesa</p>
           <CobroCuenta
@@ -476,6 +477,7 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
           />
         </div>
       )}
+      */}
 
       {/* Acciones (sticky abajo) — solo si la cuenta sigue en mano del mozo */}
       {!porCobrar && (

@@ -8,7 +8,7 @@ import MesaProductPicker from "@/components/mesas/MesaProductPicker";
 import NotaCocina from "@/components/mesas/NotaCocina";
 import MitadMitadPicker, { type MitadMitadResult } from "@/components/ventas/MitadMitadPicker";
 import PersonalizarPizzaModal, { type PersonalizarPizzaResult } from "@/components/ventas/PersonalizarPizzaModal";
-import CobroCuenta from "@/components/ventas/CobroCuenta";
+// import CobroCuenta from "@/components/ventas/CobroCuenta";  // cobro directo deshabilitado; el cierre pasa por Caja
 import { getModuleAccessCached } from "@/lib/modulos/module-access-cache";
 import {
   actualizarItemMesa, agregarItemPL, cancelarPL, enviarPLACaja,
@@ -353,8 +353,9 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
       </div>
 
       {/* Cobro directo deshabilitado temporalmente para Cucina del Cuore: el
-          cierre pasa por Caja. Cuando quieran devolverlo, sacar el `false &&`. */}
-      {false && hayItems && puedeCobrar === true && (
+          cierre pasa por Caja. Cuando quieran devolverlo, descomentar este bloque.
+
+      {hayItems && puedeCobrar === true && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="mb-4 text-sm font-semibold text-slate-800">Cobrar este pedido</p>
           <CobroCuenta
@@ -367,6 +368,7 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
           />
         </div>
       )}
+      */}
 
       {!porCobrar && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0">
