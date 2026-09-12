@@ -708,7 +708,13 @@ export default function NuevaVentaPage() {
               )}
             </div>
 
-            {/* ── Comprobante ───────────────────────────────────────────── */}
+            {/* Selector de comprobante ocultado a pedido del cliente
+                (Cucina del Cuore usa sólo ticket por ahora). El estado
+                `comprobante` sigue arrancando en "ticket" (default), así
+                que la venta se sigue registrando con ese tipo.
+                Descomentar el bloque de abajo cuando quieran habilitar
+                Factura.
+
             <div className="mt-6 border-t border-slate-100 pt-5">
               <p className="mb-3 text-sm font-semibold text-slate-800">
                 Comprobante <span className="text-red-500">*</span>
@@ -720,6 +726,7 @@ export default function NuevaVentaPage() {
                 onReceptorChange={setReceptor}
               />
             </div>
+            */}
           </div>
         </div>
 
