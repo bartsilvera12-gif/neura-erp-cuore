@@ -429,7 +429,9 @@ export default function VentasPage() {
                 <th className="hidden py-3 pr-4 font-medium lg:table-cell">Tipo</th>
                 <th className="hidden py-3 pr-4 font-medium lg:table-cell">Pago</th>
                 <th className="py-3 pr-4 font-medium">Fecha</th>
+                {/* Columna "Factura" ocultada a pedido del cliente. Descomentar para devolverla.
                 <th className="py-3 pr-4 font-medium text-center">Factura</th>
+                */}
                 <th className="py-3 font-medium text-center">Ticket</th>
               </tr>
             </thead>
@@ -500,6 +502,7 @@ export default function VentasPage() {
                       <td className="py-4 pr-4 text-gray-500 text-xs tabular-nums align-middle">
                         {formatFecha(v.fecha)}
                       </td>
+                      {/* Celda "Factura" ocultada a pedido del cliente. Descomentar para devolverla.
                       <td className="py-4 pr-4 text-center align-middle">
                         {v.factura_id ? (
                           <Link
@@ -524,6 +527,7 @@ export default function VentasPage() {
                           </button>
                         )}
                       </td>
+                      */}
                       <td className="py-4 text-center align-middle">
                         <div className="inline-flex items-center gap-2">
                           <button
