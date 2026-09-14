@@ -1,7 +1,8 @@
 "use client";
 
 import SelectField from "@/components/ui/SelectField";
-import { useEffect, useState } from "react";
+import SmartSearchSelect, { type SmartOption } from "@/components/ui/SmartSearchSelect";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import MontoInput from "@/components/ui/MontoInput";
 import { getProductos, saveMovimiento } from "@/lib/inventario/storage";
@@ -27,8 +28,7 @@ export default function NuevoMovimientoPage() {
     return () => { cancelled = true; };
   }, []);
 
-  function handleProductoChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const id = e.target.value;
+  function handleProductoChange(id: string) {
     const producto = productos.find((p) => p.id === id);
     setForm((prev) => ({
       ...prev,
@@ -36,6 +36,17 @@ export default function NuevoMovimientoPage() {
       costo_unitario: producto ? String(producto.costo_promedio) : "",
     }));
   }
+
+  // Opciones del combobox tipeable: nombre grande, SKU + stock en la sublínea.
+  const productoOptions: SmartOption[] = useMemo(
+    () => productos.map((p) => ({
+      id: String(p.id),
+      label: p.nombre,
+      sub: `${p.sku} · stock actual: ${p.stock_actual}`,
+      keywords: p.sku,
+    })),
+    [productos]
+  );
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -92,23 +103,16 @@ export default function NuevoMovimientoPage() {
       <div className="bg-white rounded-xl shadow p-6 max-w-2xl">
         <form className="space-y-6" onSubmit={handleSubmit}>
 
-          {/* Producto */}
+          {/* Producto — buscador tipeable: se puede filtrar escribiendo el
+              nombre o el SKU sin scrollear toda la lista. */}
           <div>
             <label className={labelClass}>Producto</label>
-            <SelectField
-              name="producto_id"
+            <SmartSearchSelect
+              options={productoOptions}
               value={form.producto_id}
               onChange={handleProductoChange}
-              className={inputClass}
-              required
-            >
-              <option value="">Seleccionar producto...</option>
-              {productos.map((p) => (
-                <option key={p.id} value={String(p.id)}>
-                  {p.nombre} — {p.sku} (stock actual: {p.stock_actual})
-                </option>
-              ))}
-            </SelectField>
+              placeholder="Escribí para buscar por nombre o SKU…"
+            />
           </div>
 
           {/* Tipo + Origen */}

@@ -348,7 +348,10 @@ export default function CobroCuenta({
         )}
       </div>
 
-      {/* El comprobante se decide antes de cobrar, no después */}
+      {/* Selector de comprobante ocultado a pedido del cliente (Cucina del
+          Cuore usa sólo ticket por ahora). El estado `comprobante` sigue en
+          "ticket" por default. Descomentar cuando quieran habilitar Factura.
+
       <div>
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Comprobante</p>
         <SelectorComprobante
@@ -358,6 +361,7 @@ export default function CobroCuenta({
           onReceptorChange={setReceptor}
         />
       </div>
+      */}
 
       <button
         type="button"
