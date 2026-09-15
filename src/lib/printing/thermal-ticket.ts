@@ -113,7 +113,7 @@ export interface HtmlOptions {
   isLast?: boolean;
 }
 
-const NEGOCIO_DEFAULT = "CARIBEÑA";
+const NEGOCIO_DEFAULT = "CUCINA DEL CUORE";
 const PIE = "Preparado desde Neura ERP";
 
 // ── ESC/POS — abstracción de comandos (sin dependencia de marca) ──────────────

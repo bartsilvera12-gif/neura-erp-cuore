@@ -32,7 +32,7 @@ import {
  * No toca SIFEN, no genera XML, no usa timbrado.
  */
 
-const NEGOCIO = "CARIBEÑA";
+const NEGOCIO = "CUCINA DEL CUORE";
 
 // ── Clasificación PIZZERÍA / PLANCHA ───────────────────────────────────────
 // Primary: categoría hija del producto. Fallback: prefijo de SKU.

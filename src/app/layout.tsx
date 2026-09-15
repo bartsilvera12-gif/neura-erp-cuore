@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "La Cucina del Cuore Fast Food",
-  description: "Sistema de gestión — La Cucina del Cuore Fast Food",
+  title: "La Cucina del Cuore",
+  description: "Sistema de gestión — La Cucina del Cuore",
 };
 
 export const viewport: Viewport = {
