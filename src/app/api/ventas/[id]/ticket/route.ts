@@ -264,7 +264,7 @@ function renderCopia(opts: {
     : `<div class="footer-cocina">${formatFecha(venta.fecha)}</div>`;
 
   return `<section class="paper ${isLast ? "last" : ""}">
-    ${headerCocina || (opts.logoUrl ? `<div class="logo"><img src="${opts.logoUrl}" alt="${NEGOCIO}"></div>` : `<h1>${NEGOCIO}</h1>`)}
+    ${headerCocina || `${opts.logoUrl ? `<div class="logo"><img src="${opts.logoUrl}" alt="${NEGOCIO}"></div>` : ""}<h1>${NEGOCIO}</h1>`}
     <div class="meta">
       ${escapeHtml(venta.numero_control)}<br>
       ${formatFecha(venta.fecha)}
@@ -467,8 +467,8 @@ export async function GET(request: NextRequest, ctxParams: { params: Promise<{ i
   }
 
   // Logo del local, el mismo que ya usa el KUDE. Si no hay o falla la descarga,
-  // el ticket sale con el nombre en texto como toda la vida: el comprobante no
-  // puede depender de una imagen.
+  // cae al logo de la carpeta pública del ERP. Si tampoco, sale con el nombre
+  // en texto como toda la vida: el comprobante no puede depender de una imagen.
   let logoUrl: string | null = null;
   try {
     const { data: cfgLogo } = await ctx.supabase
@@ -482,8 +482,11 @@ export async function GET(request: NextRequest, ctxParams: { params: Promise<{ i
       if (dl.ok) logoUrl = `data:image/png;base64,${dl.data.toString("base64")}`;
     }
   } catch {
-    /* sin logo: el encabezado cae al nombre en texto */
+    /* sin logo SIFEN: seguimos con el fallback */
   }
+  // Fallback: el logo del local vive en /public. Al servirse desde el mismo
+  // dominio del ERP, el path relativo alcanza para que el navegador lo pinte.
+  if (!logoUrl) logoUrl = "/logo-cucina.png";
 
   const seccionesHtml = copias
     .map((tipo, idx) =>
