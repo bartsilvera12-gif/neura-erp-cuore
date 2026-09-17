@@ -9,12 +9,12 @@ import { successResponse, errorResponse } from "@/lib/api/response";
  * Body: { monto: number, descripcion?: string }
  * Devuelve { adicional }.
  */
-export async function POST(request: NextRequest, ctx: { params: Promise<{ sesionId: string }> }) {
+export async function POST(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const gate = await requireModule(request, "mesas");
     if (!gate.ok) return NextResponse.json(errorResponse(gate.error), { status: gate.status });
     const auth = gate.auth;
-    const { sesionId } = await ctx.params;
+    const { id: sesionId } = await ctx.params;
 
     let body: unknown;
     try { body = await request.json(); } catch { return NextResponse.json(errorResponse("JSON inválido."), { status: 400 }); }
