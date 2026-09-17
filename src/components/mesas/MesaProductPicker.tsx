@@ -75,7 +75,21 @@ export default function MesaProductPicker({
 
   if (!open) return null;
 
+  /**
+   * Un producto de reventa sin stock no puede venderse: se hizo obligatorio a
+   * pedido del cliente. Los productos preparados (controla_stock=false) siguen
+   * saliendo siempre — no tienen stock físico que descontar.
+   */
+  function sinStock(p: ProductoHit): boolean {
+    return p.controla_stock && (p.stock_actual ?? 0) <= 0;
+  }
+
   function elegir(p: ProductoHit) {
+    if (sinStock(p)) {
+      setFeedback(`${p.nombre} está sin stock. No se puede vender.`);
+      setTimeout(() => setFeedback(null), 2500);
+      return;
+    }
     setSel(p); setCant(1); setObs(""); setFeedback(null);
   }
 
@@ -120,10 +134,17 @@ export default function MesaProductPicker({
             <p className="py-10 text-center text-slate-400">Sin productos.</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {filtrados.map((p) => (
+              {filtrados.map((p) => {
+                const bloqueado = sinStock(p);
+                return (
                 <button
                   key={p.id} type="button" onClick={() => elegir(p)}
-                  className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:border-[#0EA5E9] active:scale-95"
+                  disabled={bloqueado}
+                  className={`flex flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition ${
+                    bloqueado
+                      ? "border-red-200 opacity-60 cursor-not-allowed"
+                      : "border-slate-200 hover:border-[#0EA5E9] active:scale-95"
+                  }`}
                 >
                   <div className="h-24 w-full bg-slate-100">
                     {p.imagen_url ? (
@@ -146,7 +167,8 @@ export default function MesaProductPicker({
                     )}
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

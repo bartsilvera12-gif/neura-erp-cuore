@@ -26,9 +26,22 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Rechaza un intento de vender un producto de reventa que ya no tiene
+ * stock disponible. Los productos preparados (controla_stock=false)
+ * pasan siempre — no llevan stock físico que descontar.
+ */
+function assertStockDisponible(prod: { nombre: string; controla_stock?: unknown; stock_actual?: unknown }, cantidad: number): void {
+  if (prod.controla_stock !== true) return;
+  const disponible = num(prod.stock_actual);
+  if (disponible < cantidad) {
+    throw new Error(`Sin stock disponible de "${prod.nombre}" (quedan ${disponible}, se pidieron ${cantidad}).`);
+  }
+}
+
 const MESA_COLS = "id, numero, nombre, estado, activo";
 const SESION_COLS =
-  "id, mesa_id, tipo, numero_pl, nombre_cliente, estado, mozo_id, abierta_at, enviada_caja_at, cerrada_at, venta_id, observacion";
+  "id, mesa_id, tipo, numero_pl, nombre_cliente, estado, mozo_id, abierta_at, enviada_caja_at, cerrada_at, venta_id, observacion, costo_delivery";
 const ITEM_COLS =
   "id, sesion_id, producto_id, producto_nombre, sku, cantidad, precio_unitario, total, observacion, estado, comanda_id, enviado_at, es_mitad_mitad, mitad_1_nombre, mitad_2_nombre, item_display_name";
 
@@ -58,6 +71,7 @@ function mapSesion(r: Record<string, unknown>): MesaSesion {
     cerrada_at: (r.cerrada_at as string) ?? null,
     venta_id: (r.venta_id as string) ?? null,
     observacion: (r.observacion as string) ?? null,
+    costo_delivery: num(r.costo_delivery),
   };
 }
 function mapItem(r: Record<string, unknown>): MesaSesionItem {
@@ -529,16 +543,17 @@ export async function agregarItemPg(params: {
 
   const pQ = await sb
     .from("productos")
-    .select("id, nombre, sku, precio_venta")
+    .select("id, nombre, sku, precio_venta, controla_stock, stock_actual")
     .eq("empresa_id", params.empresaId)
     .eq("id", params.productoId)
     .maybeSingle();
   if (pQ.error) throw new Error(pQ.error.message);
   if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
-  const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string };
+  const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string; controla_stock: boolean | null; stock_actual: number | string | null };
 
   const cantidad = num(params.cantidad);
   if (cantidad <= 0) throw new Error("La cantidad debe ser mayor a 0.");
+  assertStockDisponible(prod, cantidad);
   const precioOverride = params.precioUnitario != null ? num(params.precioUnitario) : 0;
   const precio = precioOverride > 0 ? precioOverride : num(prod.precio_venta);
   const total = Math.round(precio * cantidad);
@@ -732,7 +747,7 @@ export async function actualizarItemPg(params: {
         .eq("empresa_id", params.empresaId).eq("id", params.productoId).maybeSingle();
       if (pQ.error) throw new Error(pQ.error.message);
       if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
-      const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string };
+      const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string; controla_stock: boolean | null; stock_actual: number | string | null };
 
       const override = params.precioUnitario != null ? num(params.precioUnitario) : 0;
       precio = override > 0 ? override : num(prod.precio_venta);
@@ -1307,9 +1322,10 @@ export async function agregarItemCajaPg(params: {
     .eq("empresa_id", params.empresaId).eq("id", params.productoId).maybeSingle();
   if (pQ.error) throw new Error(pQ.error.message);
   if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
-  const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string };
+  const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string; controla_stock: boolean | null; stock_actual: number | string | null };
   const cantidad = num(params.cantidad);
   if (cantidad <= 0) throw new Error("La cantidad debe ser mayor a 0.");
+  assertStockDisponible(prod, cantidad);
   // Precio: el editado por caja (si es válido > 0) o el del catálogo. facturarSesionPg
   // lee precio_unitario del ítem, así que el override se respeta en la venta final.
   const precioOverride = params.precioUnitario != null ? num(params.precioUnitario) : 0;
@@ -1388,10 +1404,11 @@ export async function agregarItemSesionPg(params: {
     .eq("empresa_id", params.empresaId).eq("id", params.productoId).maybeSingle();
   if (pQ.error) throw new Error(pQ.error.message);
   if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
-  const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string };
+  const prod = pQ.data as { nombre: string; sku: string | null; precio_venta: number | string; controla_stock: boolean | null; stock_actual: number | string | null };
 
   const cantidad = num(params.cantidad);
   if (cantidad <= 0) throw new Error("La cantidad debe ser mayor a 0.");
+  assertStockDisponible(prod, cantidad);
   const precioOverride = params.precioUnitario != null ? num(params.precioUnitario) : 0;
   const precio = precioOverride > 0 ? precioOverride : num(prod.precio_venta);
   const total = Math.round(precio * cantidad);

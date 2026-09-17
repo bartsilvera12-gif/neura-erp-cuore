@@ -43,6 +43,9 @@ export interface MesaSesion {
   cerrada_at: string | null;
   venta_id: string | null;
   observacion: string | null;
+  /** Costo de delivery de un pedido para llevar. Sólo tiene sentido cuando
+   *  la sesión es delivery (nota "Delivery:"). Se suma al total al cobrar. */
+  costo_delivery: number;
 }
 
 /** Resumen de una sesión PARA LLEVAR para la lista/sidebar. */

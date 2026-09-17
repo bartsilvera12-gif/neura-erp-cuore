@@ -238,7 +238,10 @@ function renderCopia(opts: {
        <table class="totales">
          <tbody>
            <tr><td class="lbl">Subtotal</td><td class="val">${formatGs(subtotal)}</td></tr>
+           <!-- IVA ocultado a pedido del cliente (Cucina del Cuore no lo desglosa
+                en el ticket). El total sigue incluyendo el impuesto igual que antes.
            ${ivaTotal > 0 ? `<tr><td class="lbl">IVA</td><td class="val">${formatGs(ivaTotal)}</td></tr>` : ""}
+           -->
            ${esDelivery
              ? `<tr><td class="lbl">Productos</td><td class="val">${formatGs(total)}</td></tr>
                 <tr><td class="lbl">Delivery</td><td class="val">${formatGs(costoDelivery)}</td></tr>
