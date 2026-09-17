@@ -564,7 +564,10 @@ export default function InventarioPage() {
                 <th className={`${th} hidden lg:table-cell`}>SKU</th>
                 <th className={`${th} text-right`}>Costo prom.</th>
                 <th className={`${th} text-right`}>Precio venta</th>
-                <th className={`${th} text-center`}>Stock</th>
+                {/* Stock y Stock mín. sólo tienen sentido para reventa
+                    y materia prima. Los productos de Menú son elaborados
+                    (controla_stock=false): no hay stock físico que medir. */}
+                <th className={`${th} text-center ${tab === "menu" ? "hidden" : ""}`}>Stock</th>
                 <th className={`${th} text-center ${tab === "reventa" ? "hidden lg:table-cell" : "hidden"}`}>Stock mín.</th>
                 <th className={`${th} hidden lg:table-cell`}>Unidad</th>
                 <th className={`${th} ${tab === "menu" ? "" : "hidden"}`}>Sector</th>
@@ -608,8 +611,9 @@ export default function InventarioPage() {
                     <td className="px-5 py-3.5 text-right tabular-nums text-slate-700">{formatGs(p.precio_venta)}</td>
                     {/* El modo de stock estaba invisible fuera de Reventa, que es
                         justo donde importa: en Materia prima decide si el insumo
-                        baja al cocinar. Ahora la celda lo dice y deja cambiarlo. */}
-                    <td className="px-5 py-3.5 text-center">
+                        baja al cocinar. Ahora la celda lo dice y deja cambiarlo.
+                        En Menú (elaborados) se oculta entera: no hay stock que medir. */}
+                    <td className={`px-5 py-3.5 text-center ${tab === "menu" ? "hidden" : ""}`}>
                       {tab === "reventa" ? (
                         <span
                           className={`text-sm font-semibold tabular-nums ${stockBajo ? "text-red-600" : "text-slate-800"}`}
