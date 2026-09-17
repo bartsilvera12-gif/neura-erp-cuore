@@ -746,7 +746,7 @@ export async function actualizarItemPg(params: {
 
     if (params.productoId) {
       const pQ = await sb
-        .from("productos").select("id, nombre, sku, precio_venta")
+        .from("productos").select("id, nombre, sku, precio_venta, controla_stock, stock_actual")
         .eq("empresa_id", params.empresaId).eq("id", params.productoId).maybeSingle();
       if (pQ.error) throw new Error(pQ.error.message);
       if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
@@ -1321,7 +1321,7 @@ export async function agregarItemCajaPg(params: {
   const sb = createServiceRoleClientWithDbSchema(params.schema);
   await sesionEditable(sb, params.empresaId, params.sesionId);
 
-  const pQ = await sb.from("productos").select("nombre, sku, precio_venta")
+  const pQ = await sb.from("productos").select("nombre, sku, precio_venta, controla_stock, stock_actual")
     .eq("empresa_id", params.empresaId).eq("id", params.productoId).maybeSingle();
   if (pQ.error) throw new Error(pQ.error.message);
   if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
@@ -1403,7 +1403,7 @@ export async function agregarItemSesionPg(params: {
   if (s.estado !== "abierta") throw new Error("La cuenta ya fue enviada a caja; no se pueden agregar más productos.");
 
   const pQ = await sb
-    .from("productos").select("id, nombre, sku, precio_venta")
+    .from("productos").select("id, nombre, sku, precio_venta, controla_stock, stock_actual")
     .eq("empresa_id", params.empresaId).eq("id", params.productoId).maybeSingle();
   if (pQ.error) throw new Error(pQ.error.message);
   if (!pQ.data) throw new Error("Producto no encontrado en esta empresa.");
