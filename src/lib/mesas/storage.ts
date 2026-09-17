@@ -7,7 +7,7 @@ import type {
 type Ok<T> = { success: true } & T;
 type Err = { success: false; error: string };
 
-async function call<T>(url: string, method: "GET" | "POST" | "PATCH", body?: unknown): Promise<Ok<T> | Err> {
+async function call<T>(url: string, method: "GET" | "POST" | "PATCH" | "DELETE", body?: unknown): Promise<Ok<T> | Err> {
   try {
     const res = await fetchWithSupabaseSession(url, {
       method,
