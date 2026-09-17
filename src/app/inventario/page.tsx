@@ -65,6 +65,10 @@ export default function InventarioPage() {
   const [soloStockBajo,    setSoloStockBajo]    = useState(false);
   const [eliminandoId,     setEliminandoId]      = useState<string | null>(null);
   const [errorAccion,      setErrorAccion]       = useState<string | null>(null);
+  // Paginación: cuántas filas mostrar por vez. "todo" desactiva el corte y
+  // muestra la lista entera; útil para exportar o buscar sin miedo a que se
+  // pierda algo al final.
+  const [filasPorPagina,   setFilasPorPagina]    = useState<25 | 50 | 100 | "todo">(25);
 
   /**
    * Borra el producto. Si ya circuló (ventas, movimientos, compras, recetas…)
@@ -306,6 +310,12 @@ export default function InventarioPage() {
     tab,
   ]);
 
+  // Recorte por paginación: si es "todo" no corta nada, sino trunca al N elegido.
+  const productosVisibles = useMemo(
+    () => (filasPorPagina === "todo" ? productos : productos.slice(0, filasPorPagina)),
+    [productos, filasPorPagina],
+  );
+
   const hayFiltrosActivos =
     filtroPorNombre || filtroPorSku || filtroPorCosto ||
     filtroPorPrecio || filtroValuacion || filtroUbicacion || soloStockBajo ||
@@ -378,11 +388,6 @@ export default function InventarioPage() {
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <div>
               <h2 className="text-base font-semibold text-slate-800">Productos</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {productos.length === todos.length
-                  ? `${todos.length} producto${todos.length === 1 ? "" : "s"}`
-                  : `${productos.length} de ${todos.length} productos`}
-              </p>
             </div>
             <input
               type="text"
@@ -391,6 +396,30 @@ export default function InventarioPage() {
               onChange={(e) => setFiltroPorNombre(e.target.value)}
               className={`${input} min-w-0 flex-1 sm:max-w-xs`}
             />
+
+            {/* Filas por página: dropdown compacto para elegir cuántos
+                productos ver a la vez. Útil cuando el catálogo crece. */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium uppercase tracking-wide text-slate-500">Filas</label>
+              <select
+                value={String(filasPorPagina)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setFilasPorPagina(v === "todo" ? "todo" : (Number(v) as 25 | 50 | 100));
+                }}
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium text-slate-700 outline-none focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20"
+              >
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="todo">Todo</option>
+              </select>
+              <span className="text-xs text-slate-500">
+                {filasPorPagina === "todo" || productosVisibles.length >= productos.length
+                  ? `${productos.length} de ${productos.length}`
+                  : `${productosVisibles.length} de ${productos.length}`} productos
+              </span>
+            </div>
           </div>
           <Link href="/inventario/nuevo" className={btnPrimario}>
             <Plus className="h-4 w-4" aria-hidden />
@@ -556,7 +585,7 @@ export default function InventarioPage() {
                   </td>
                 </tr>
               ) : null}
-              {productos.map((p) => {
+              {productosVisibles.map((p) => {
                 const stockBajo = p.stock_actual <= p.stock_minimo;
                 const margen = calcularMargenVenta(p.costo_promedio, p.precio_venta);
                 return (
