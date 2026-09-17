@@ -69,6 +69,7 @@ export default function InventarioPage() {
   // muestra la lista entera; útil para exportar o buscar sin miedo a que se
   // pierda algo al final.
   const [filasPorPagina,   setFilasPorPagina]    = useState<25 | 50 | 100 | "todo">(25);
+  const [pagina,           setPagina]            = useState<number>(1);
 
   /**
    * Borra el producto. Si ya circuló (ventas, movimientos, compras, recetas…)
@@ -310,11 +311,31 @@ export default function InventarioPage() {
     tab,
   ]);
 
-  // Recorte por paginación: si es "todo" no corta nada, sino trunca al N elegido.
-  const productosVisibles = useMemo(
-    () => (filasPorPagina === "todo" ? productos : productos.slice(0, filasPorPagina)),
-    [productos, filasPorPagina],
+  // Paginación real: cuenta las páginas totales según el corte elegido, y
+  // arma la ventana [inicio, fin) para la página actual. "todo" desactiva
+  // el corte.
+  const totalPaginas = useMemo(
+    () => (filasPorPagina === "todo" ? 1 : Math.max(1, Math.ceil(productos.length / filasPorPagina))),
+    [productos.length, filasPorPagina],
   );
+
+  // Si un cambio de filtro deja la página elegida "fuera de rango", la
+  // arrastramos al último válido — evita quedar en página vacía sin saber.
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
+
+  // Cambiar el tamaño de página vuelve al inicio: no tiene sentido saltar
+  // a la página 3 con 100 por página si veníamos en la 3 con 25.
+  useEffect(() => {
+    setPagina(1);
+  }, [filasPorPagina, tab, filtroPorNombre]);
+
+  const productosVisibles = useMemo(() => {
+    if (filasPorPagina === "todo") return productos;
+    const desde = (pagina - 1) * filasPorPagina;
+    return productos.slice(desde, desde + filasPorPagina);
+  }, [productos, filasPorPagina, pagina]);
 
   const hayFiltrosActivos =
     filtroPorNombre || filtroPorSku || filtroPorCosto ||
@@ -715,6 +736,52 @@ export default function InventarioPage() {
 
           </table>
         </EdgeScrollArea>
+
+        {/* Navegación entre páginas. Sólo aparece cuando hay más de una. */}
+        {filasPorPagina !== "todo" && totalPaginas > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
+            <p className="text-xs text-slate-500">
+              Página <strong className="text-slate-700">{pagina}</strong> de <strong className="text-slate-700">{totalPaginas}</strong>
+              <span className="ml-2 text-slate-400">
+                ({(pagina - 1) * filasPorPagina + 1}–{Math.min(pagina * filasPorPagina, productos.length)} de {productos.length})
+              </span>
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPagina(1)}
+                disabled={pagina === 1}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                « Primera
+              </button>
+              <button
+                type="button"
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                disabled={pagina === 1}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ‹ Anterior
+              </button>
+              <button
+                type="button"
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                disabled={pagina >= totalPaginas}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Siguiente ›
+              </button>
+              <button
+                type="button"
+                onClick={() => setPagina(totalPaginas)}
+                disabled={pagina >= totalPaginas}
+                className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Última »
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
 
