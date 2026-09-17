@@ -18,6 +18,9 @@ function formatHora(iso: string | null) {
   catch { return iso; }
 }
 
+type SectorFiltro = "todas" | "pizzeria" | "plancha";
+const SECTOR_FILTRO_KEY = "cucina-comandas-sector-filtro";
+
 export default function ComandasPage() {
   const [pendientes, setPendientes] = useState<ComandaCard[]>([]);
   const [busqueda, setBusqueda] = useState("");
@@ -28,6 +31,24 @@ export default function ComandasPage() {
   // Con la impresión automática encendida la pantalla es la que dispara el
   // papel: 15 segundos de espera se sienten en la cocina.
   const [autoActivo, setAutoActivo] = useState(false);
+  /**
+   * Filtro de sector, persistido por navegador. Sirve para tener dos ventanas
+   * abiertas en la misma PC de caja — una con "Solo horno" apuntando a la
+   * impresora de pizzería y otra con "Solo plancha" a la otra — y que cada
+   * una imprima automáticamente solo lo suyo.
+   */
+  const [sectorFiltro, setSectorFiltro] = useState<SectorFiltro>("todas");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(SECTOR_FILTRO_KEY);
+    if (stored === "pizzeria" || stored === "plancha" || stored === "todas") {
+      setSectorFiltro(stored);
+    }
+  }, []);
+  function cambiarSector(next: SectorFiltro) {
+    setSectorFiltro(next);
+    try { window.localStorage.setItem(SECTOR_FILTRO_KEY, next); } catch { /* modo privado */ }
+  }
 
   // La pantalla operativa solo trae comandas pendientes (estado = generada).
   const load = useCallback(async () => {
@@ -208,9 +229,17 @@ export default function ComandasPage() {
    * Se busca también dentro de los productos: en la cocina la pregunta es
    * "¿dónde está la hamburguesa?", no el número de comanda.
    */
+  // Aplicar primero el filtro de sector; el resto (búsqueda, auto-imprimir)
+  // trabaja sobre ese subconjunto para que el que eligió "Solo horno" no vea
+  // ni imprima nunca una comanda de plancha, y viceversa.
+  const pendientesPorSector = useMemo(
+    () => (sectorFiltro === "todas" ? pendientes : pendientes.filter((c) => c.sector === sectorFiltro)),
+    [pendientes, sectorFiltro]
+  );
+
   const pendientesVisibles = useMemo(
     () =>
-      pendientes.filter((c) =>
+      pendientesPorSector.filter((c) =>
         coincideBusqueda(
           busqueda,
           c.numero,
@@ -221,7 +250,7 @@ export default function ComandasPage() {
           c.items.map((i) => i.producto_nombre).join(" ")
         )
       ),
-    [pendientes, busqueda]
+    [pendientesPorSector, busqueda]
   );
 
   return (
@@ -239,6 +268,39 @@ export default function ComandasPage() {
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700"><AlertTriangle className="inline h-4 w-4 align-[-0.125em]" aria-hidden /> {error}</div>}
 
+      {/* Filtro por sector: se recuerda por navegador. Con dos ventanas en la
+          PC de la caja — cada una con su impresora predeterminada — cada una
+          imprime sólo sus comandas. Sin dos impresoras alcanza con dejarlo en
+          "Solo horno" y el resto se imprime a mano cuando toca. */}
+      <div className="flex flex-wrap gap-2">
+        {([
+          { key: "todas",     label: "Todas" },
+          { key: "pizzeria",  label: "Solo horno" },
+          { key: "plancha",   label: "Solo plancha" },
+        ] as const).map(({ key, label }) => {
+          const activo = sectorFiltro === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => cambiarSector(key)}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                activo
+                  ? "border-amber-500 bg-amber-50 text-amber-800"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {sectorFiltro !== "todas" && (
+          <span className="ml-1 self-center text-xs text-slate-400">
+            (esta ventana sólo ve e imprime {sectorFiltro === "pizzeria" ? "horno" : "plancha"})
+          </span>
+        )}
+      </div>
+
       {/* Busca también por producto: en la cocina se pregunta "¿dónde está la
           hamburguesa?", no "¿dónde está la comanda 47?". */}
       <BuscadorLista
@@ -246,19 +308,19 @@ export default function ComandasPage() {
         onChange={setBusqueda}
         placeholder="Buscar por mesa, mozo, N° de comanda o producto…"
         mostrando={pendientesVisibles.length}
-        total={pendientes.length}
+        total={pendientesPorSector.length}
       />
 
       {loading ? (
         <p className="py-10 text-center text-slate-400">Cargando comandas…</p>
       ) : (
         <>
-          <ImpresionAutomatica pendientes={pendientes} cargando={loading} onImpresa={load} onEstado={setAutoActivo} />
+          <ImpresionAutomatica pendientes={pendientesPorSector} cargando={loading} onImpresa={load} onEstado={setAutoActivo} />
 
           <section>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-amber-600">
-                Comandas pendientes de imprimir <span className="ml-1 rounded-full bg-amber-100 px-2 text-xs text-amber-800">{pendientes.length}</span>
+                Comandas pendientes de imprimir <span className="ml-1 rounded-full bg-amber-100 px-2 text-xs text-amber-800">{pendientesPorSector.length}</span>
               </h2>
               {pendientesVisibles.length > 1 && (
                 <button
@@ -271,8 +333,12 @@ export default function ComandasPage() {
                 </button>
               )}
             </div>
-            {pendientes.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">No hay comandas pendientes de imprimir.</p>
+            {pendientesPorSector.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
+                {sectorFiltro === "todas"
+                  ? "No hay comandas pendientes de imprimir."
+                  : `No hay comandas pendientes de ${sectorFiltro === "pizzeria" ? "horno" : "plancha"}.`}
+              </p>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {pendientesVisibles.map((c) => <Card key={c.id} c={c} />)}
