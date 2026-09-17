@@ -10,7 +10,7 @@ import {
 } from "@/lib/comandas/storage";
 import type { ComandaCard } from "@/lib/comandas/types";
 import { SectorBadge } from "@/components/comandas/SectorBadge";
-// import ImpresionAutomatica from "@/components/comandas/ImpresionAutomatica";  // panel ocultado a pedido del cliente
+import ImpresionAutomatica from "@/components/comandas/ImpresionAutomatica";
 
 function formatHora(iso: string | null) {
   if (!iso) return "—";
@@ -253,10 +253,7 @@ export default function ComandasPage() {
         <p className="py-10 text-center text-slate-400">Cargando comandas…</p>
       ) : (
         <>
-          {/* Panel de impresión automática ocultado a pedido del cliente.
-              Cuando quieran devolverlo, descomentar la línea siguiente.
           <ImpresionAutomatica pendientes={pendientes} cargando={loading} onImpresa={load} onEstado={setAutoActivo} />
-          */}
 
           <section>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
