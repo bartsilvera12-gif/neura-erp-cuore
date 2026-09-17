@@ -17,6 +17,7 @@ import type {
   MesaSesion,
   MesaSesionItem,
   ParaLlevarConResumen,
+  SesionAdicional,
 } from "@/lib/mesas/types";
 
 type Sb = ReturnType<typeof createServiceRoleClientWithDbSchema>;
@@ -290,6 +291,7 @@ export async function getMesaDetallePg(
   const sesion = sQ.data ? mapSesion(sQ.data as Record<string, unknown>) : null;
 
   let items: MesaSesionItem[] = [];
+  let adicionales: SesionAdicional[] = [];
   if (sesion) {
     const iQ = await sb
       .from("mesa_sesion_items")
@@ -300,9 +302,85 @@ export async function getMesaDetallePg(
       .order("created_at", { ascending: true });
     if (iQ.error) throw new Error(iQ.error.message);
     items = (iQ.data ?? []).map((r) => mapItem(r as Record<string, unknown>));
+    adicionales = await listarAdicionalesPg(sb, empresaId, sesion.id);
   }
-  const total = items.reduce((s, it) => s + it.total, 0);
-  return { mesa, sesion, items, total };
+  const totalItems = items.reduce((s, it) => s + it.total, 0);
+  const totalAd = adicionales.reduce((s, a) => s + a.monto, 0);
+  return { mesa, sesion, items, adicionales, total: totalItems + totalAd };
+}
+
+/** Lista los adicionales cargados a una sesión (más viejos primero). */
+async function listarAdicionalesPg(sb: Sb, empresaId: string, sesionId: string): Promise<SesionAdicional[]> {
+  const q = await sb
+    .from("sesion_adicionales")
+    .select("id, monto, descripcion, created_at")
+    .eq("empresa_id", empresaId)
+    .eq("sesion_id", sesionId)
+    .order("created_at", { ascending: true });
+  if (q.error) throw new Error(q.error.message);
+  return (q.data ?? []).map((r) => {
+    const row = r as Record<string, unknown>;
+    return {
+      id: String(row.id),
+      monto: num(row.monto),
+      descripcion: (row.descripcion as string) ?? null,
+      created_at: String(row.created_at ?? ""),
+    };
+  });
+}
+
+/**
+ * Agrega un cargo extra a una sesión abierta (mesa o Para Llevar).
+ * Sólo se aceptan montos > 0 en sesiones en estado abierta/por_cobrar.
+ */
+export async function agregarAdicionalPg(params: {
+  schema: string;
+  empresaId: string;
+  sesionId: string;
+  monto: number;
+  descripcion: string | null;
+  creadoPor: string | null;
+}): Promise<SesionAdicional> {
+  const sb = createServiceRoleClientWithDbSchema(params.schema);
+  const monto = Math.round(params.monto);
+  if (!(monto > 0)) throw new Error("El monto del adicional debe ser mayor a 0.");
+
+  const sQ = await sb
+    .from("mesa_sesiones").select("id, estado, venta_id")
+    .eq("empresa_id", params.empresaId).eq("id", params.sesionId).maybeSingle();
+  if (sQ.error) throw new Error(sQ.error.message);
+  if (!sQ.data) throw new Error("Sesión no encontrada.");
+  const s = sQ.data as { estado: string; venta_id: string | null };
+  if (s.venta_id) throw new Error("La cuenta ya fue facturada; no se pueden agregar adicionales.");
+  if (!["abierta", "por_cobrar"].includes(s.estado)) throw new Error("La cuenta ya no acepta adicionales.");
+
+  const ins = await sb.from("sesion_adicionales").insert({
+    empresa_id: params.empresaId,
+    sesion_id: params.sesionId,
+    monto,
+    descripcion: (params.descripcion ?? "").trim() || null,
+    creado_por: params.creadoPor,
+  }).select("id, monto, descripcion, created_at").single();
+  if (ins.error) throw new Error(ins.error.message);
+  const row = ins.data as Record<string, unknown>;
+  return {
+    id: String(row.id),
+    monto: num(row.monto),
+    descripcion: (row.descripcion as string) ?? null,
+    created_at: String(row.created_at ?? ""),
+  };
+}
+
+/** Elimina un adicional (por si el mozo/cajero se equivocó). */
+export async function eliminarAdicionalPg(params: {
+  schema: string;
+  empresaId: string;
+  adicionalId: string;
+}): Promise<void> {
+  const sb = createServiceRoleClientWithDbSchema(params.schema);
+  const del = await sb.from("sesion_adicionales").delete()
+    .eq("empresa_id", params.empresaId).eq("id", params.adicionalId);
+  if (del.error) throw new Error(del.error.message);
 }
 
 /** Sesiones por cobrar (lista para caja). */
@@ -426,7 +504,7 @@ export async function getParaLlevarDetallePg(
   schema: string,
   empresaId: string,
   sesionId: string
-): Promise<{ sesion: MesaSesion; items: MesaSesionItem[]; total: number } | null> {
+): Promise<{ sesion: MesaSesion; items: MesaSesionItem[]; adicionales: SesionAdicional[]; total: number } | null> {
   const sb = createServiceRoleClientWithDbSchema(schema);
   const sQ = await sb
     .from("mesa_sesiones")
@@ -448,8 +526,14 @@ export async function getParaLlevarDetallePg(
     .order("created_at", { ascending: true });
   if (iQ.error) throw new Error(iQ.error.message);
   const items = (iQ.data ?? []).map((r) => mapItem(r as Record<string, unknown>));
-  const total = items.reduce((s, it) => s + it.total, 0);
-  return { sesion, items, total };
+  const adicionales = await listarAdicionalesPg(sb, empresaId, sesion.id);
+  const totalItems = items.reduce((s, it) => s + it.total, 0);
+  const totalAd = adicionales.reduce((s, a) => s + a.monto, 0);
+  // El costo de delivery lo tratamos como un extra más para la cuenta
+  // (aunque en la DB es una columna propia): así el "total a cobrar" queda
+  // consistente sin que la caja tenga que sumar por afuera.
+  const totalDelivery = num(sesion.costo_delivery);
+  return { sesion, items, adicionales, total: totalItems + totalAd + totalDelivery };
 }
 
 // ── Escrituras ────────────────────────────────────────────────────────────────
@@ -1305,7 +1389,10 @@ export async function getSesionDetallePg(schema: string, empresaId: string, sesi
     .eq("empresa_id", empresaId).eq("sesion_id", sesionId).in("estado", ITEM_VIGENTES).order("created_at", { ascending: true });
   if (iQ.error) throw new Error(iQ.error.message);
   const items = (iQ.data ?? []).map((r) => mapItem(r as Record<string, unknown>));
-  return { mesa, sesion, items, total: items.reduce((s, it) => s + it.total, 0) };
+  const adicionales = await listarAdicionalesPg(sb, empresaId, sesionId);
+  const totalItems = items.reduce((s, it) => s + it.total, 0);
+  const totalAd = adicionales.reduce((s, a) => s + a.monto, 0);
+  return { mesa, sesion, items, adicionales, total: totalItems + totalAd };
 }
 
 /** Caja agrega un producto a una sesión por_cobrar (forma parte de la venta final). */

@@ -110,10 +110,23 @@ export interface MesaConResumen {
   mozo_nombre: string | null;
 }
 
-/** Detalle completo de una mesa: mesa + sesión viva + ítems activos. */
+/**
+ * Cargo extra sobre una sesión (no es un producto del catálogo).
+ * Sirve para "adicional cocina", "cargo por servicio", propinas y cualquier
+ * suma ad-hoc que el mozo/cajero necesite agregar al total.
+ */
+export interface SesionAdicional {
+  id: string;
+  monto: number;
+  descripcion: string | null;
+  created_at: string;
+}
+
+/** Detalle completo de una mesa: mesa + sesión viva + ítems activos + adicionales. */
 export interface MesaDetalle {
   mesa: Mesa;
   sesion: MesaSesion | null;
   items: MesaSesionItem[];
+  adicionales: SesionAdicional[];
   total: number;
 }

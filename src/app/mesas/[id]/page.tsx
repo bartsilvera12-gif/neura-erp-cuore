@@ -14,7 +14,8 @@ import {
   actualizarItemMesa, agregarItemMesa, cancelarCuentaMesa,
   enviarComandaMesa, enviarMesaACaja, getMesaDetalle,
 } from "@/lib/mesas/storage";
-import type { EstadoMesa, MesaSesionItem } from "@/lib/mesas/types";
+import type { EstadoMesa, MesaSesionItem, SesionAdicional } from "@/lib/mesas/types";
+import AdicionalesSesion from "@/components/mesas/AdicionalesSesion";
 
 function formatGs(v: number) {
   return `Gs. ${Math.round(v).toLocaleString("es-PY")}`;
@@ -36,6 +37,7 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
   const [mesaEstado, setMesaEstado] = useState<EstadoMesa>("libre");
   const [porCobrar, setPorCobrar] = useState(false);
   const [items, setItems] = useState<MesaSesionItem[]>([]);
+  const [adicionales, setAdicionales] = useState<SesionAdicional[]>([]);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
   /**
@@ -79,6 +81,7 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
       setPorCobrar(d.sesion?.estado === "por_cobrar");
       setSesionId(d.sesion?.id ?? null);
       setItems(d.items);
+      setAdicionales(d.adicionales ?? []);
     }
     setLoading(false);
   }, [id]);
@@ -313,7 +316,9 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
 
   if (loading) return <p className="py-10 text-center text-slate-400">Cargando mesa…</p>;
 
-  const total = items.reduce((s, i) => s + i.total, 0);
+  const subtotalItems = items.reduce((s, i) => s + i.total, 0);
+  const totalAdicionales = adicionales.reduce((s, a) => s + a.monto, 0);
+  const total = subtotalItems + totalAdicionales;
   const hayItems = items.length > 0;
   /**
    * Id de la cuenta, con los propios productos como respaldo.
@@ -451,11 +456,32 @@ export default function MesaDetallePage({ params }: { params: Promise<{ id: stri
             })}
           </ul>
         )}
-        <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+        {totalAdicionales > 0 && (
+          <div className="mt-3 space-y-1 border-t border-slate-200 pt-3 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+              <span>Subtotal productos</span>
+              <span className="tabular-nums">{formatGs(subtotalItems)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Adicionales</span>
+              <span className="tabular-nums">{formatGs(totalAdicionales)}</span>
+            </div>
+          </div>
+        )}
+        <div className={`mt-3 flex items-center justify-between ${totalAdicionales > 0 ? "" : "border-t border-slate-200"} pt-3`}>
           <span className="text-base font-bold text-slate-900">TOTAL</span>
           <span className="text-xl font-extrabold tabular-nums text-slate-900">{formatGs(total)}</span>
         </div>
       </div>
+
+      {sesionId && !porCobrar && (
+        <AdicionalesSesion
+          sesionId={sesionId}
+          adicionales={adicionales}
+          onCambio={setAdicionales}
+          bloqueado={porCobrar}
+        />
+      )}
 
       {/* El cobro vive acá, en la misma pantalla de la mesa. Tener que salir a
           Caja para cobrar la cuenta que ya se tenía abierta era pedirle al

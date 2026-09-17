@@ -1,7 +1,7 @@
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 import type {
   ComandaEnvioResult, MesaConResumen, MesaDetalle, MesaSesion, MesaSesionItem,
-  ParaLlevarConResumen,
+  ParaLlevarConResumen, SesionAdicional,
 } from "./types";
 
 type Ok<T> = { success: true } & T;
@@ -211,11 +211,31 @@ export async function getParaLlevarActivas(): Promise<ParaLlevarConResumen[] | n
 }
 
 /** Detalle de una sesión PL. */
-export async function getParaLlevarDetalle(sesionId: string): Promise<{ sesion: MesaSesion; items: MesaSesionItem[]; total: number } | null> {
-  const r = await call<{ detalle: { sesion: MesaSesion; items: MesaSesionItem[]; total: number } }>(
+export async function getParaLlevarDetalle(sesionId: string): Promise<{ sesion: MesaSesion; items: MesaSesionItem[]; adicionales: SesionAdicional[]; total: number } | null> {
+  const r = await call<{ detalle: { sesion: MesaSesion; items: MesaSesionItem[]; adicionales: SesionAdicional[]; total: number } }>(
     `/api/mesas/pl/${encodeURIComponent(sesionId)}`, "GET"
   );
   return r.success ? r.detalle : null;
+}
+
+/** Agrega un cargo extra a una sesión abierta (mesa o PL). */
+export function agregarAdicional(
+  sesionId: string,
+  monto: number,
+  descripcion: string | null = null,
+) {
+  return call<{ adicional: SesionAdicional }>(
+    `/api/mesas/sesiones/${encodeURIComponent(sesionId)}/adicionales`, "POST",
+    { monto, descripcion },
+  );
+}
+
+/** Elimina un cargo extra por id. */
+export function eliminarAdicional(sesionId: string, adicionalId: string) {
+  return call<{ ok: boolean }>(
+    `/api/mesas/sesiones/${encodeURIComponent(sesionId)}/adicionales/${encodeURIComponent(adicionalId)}`,
+    "DELETE",
+  );
 }
 
 export function agregarItemPL(

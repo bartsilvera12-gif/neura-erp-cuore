@@ -14,7 +14,8 @@ import {
   actualizarItemMesa, agregarItemPL, cancelarPL, enviarPLACaja,
   enviarComandaPL, getParaLlevarDetalle,
 } from "@/lib/mesas/storage";
-import type { MesaSesion, MesaSesionItem } from "@/lib/mesas/types";
+import type { MesaSesion, MesaSesionItem, SesionAdicional } from "@/lib/mesas/types";
+import AdicionalesSesion from "@/components/mesas/AdicionalesSesion";
 
 function formatGs(v: number) {
   return `Gs. ${Math.round(v).toLocaleString("es-PY")}`;
@@ -31,6 +32,7 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
   const [sesion, setSesion] = useState<MesaSesion | null>(null);
   const [porCobrar, setPorCobrar] = useState(false);
   const [items, setItems] = useState<MesaSesionItem[]>([]);
+  const [adicionales, setAdicionales] = useState<SesionAdicional[]>([]);
   /** Si este usuario puede cobrar. El mozo no: tiene mesas y comandas, no ventas. */
   const [puedeCobrar, setPuedeCobrar] = useState<boolean | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
@@ -57,6 +59,7 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
       setSesion(d.sesion);
       setPorCobrar(d.sesion.estado === "por_cobrar");
       setItems(d.items);
+      setAdicionales(d.adicionales ?? []);
     }
     setLoading(false);
   }, [sesionId]);
@@ -253,7 +256,10 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
   if (loading) return <p className="py-10 text-center text-slate-400">Cargando pedido…</p>;
   if (!sesion) return <p className="py-10 text-center text-slate-400">Pedido no encontrado.</p>;
 
-  const total = items.reduce((s, i) => s + i.total, 0);
+  const subtotalItems = items.reduce((s, i) => s + i.total, 0);
+  const totalAdicionales = adicionales.reduce((s, a) => s + a.monto, 0);
+  const costoDelivery = sesion?.costo_delivery ?? 0;
+  const total = subtotalItems + totalAdicionales + costoDelivery;
   const hayItems = items.length > 0;
   const hayPendientes = items.some((i) => i.estado === "pendiente");
 
@@ -346,11 +352,40 @@ export default function ParaLlevarDetallePage({ params }: { params: Promise<{ se
             })}
           </ul>
         )}
-        <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+        {(totalAdicionales > 0 || costoDelivery > 0) && (
+          <div className="mt-3 space-y-1 border-t border-slate-200 pt-3 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+              <span>Subtotal productos</span>
+              <span className="tabular-nums">{formatGs(subtotalItems)}</span>
+            </div>
+            {totalAdicionales > 0 && (
+              <div className="flex items-center justify-between">
+                <span>Adicionales</span>
+                <span className="tabular-nums">{formatGs(totalAdicionales)}</span>
+              </div>
+            )}
+            {costoDelivery > 0 && (
+              <div className="flex items-center justify-between">
+                <span>Delivery</span>
+                <span className="tabular-nums">{formatGs(costoDelivery)}</span>
+              </div>
+            )}
+          </div>
+        )}
+        <div className={`mt-3 flex items-center justify-between ${totalAdicionales > 0 || costoDelivery > 0 ? "" : "border-t border-slate-200"} pt-3`}>
           <span className="text-base font-bold text-slate-900">TOTAL</span>
           <span className="text-xl font-extrabold tabular-nums text-slate-900">{formatGs(total)}</span>
         </div>
       </div>
+
+      {!porCobrar && (
+        <AdicionalesSesion
+          sesionId={sesionId}
+          adicionales={adicionales}
+          onCambio={setAdicionales}
+          bloqueado={porCobrar}
+        />
+      )}
 
       {/* Cobro directo deshabilitado temporalmente para Cucina del Cuore: el
           cierre pasa por Caja. Cuando quieran devolverlo, descomentar este bloque.
