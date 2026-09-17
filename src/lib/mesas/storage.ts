@@ -185,10 +185,15 @@ export function facturarMesa(
  * La nota va impresa en la comanda de cocina: ahí se escribe "delivery" o
  * "retira 21:00", que es lo que decide si hay que llamar a un repartidor.
  */
-export function crearParaLlevar(nombreCliente: string | null, observacion: string | null = null) {
+export function crearParaLlevar(
+  nombreCliente: string | null,
+  observacion: string | null = null,
+  costoDelivery: number = 0,
+) {
   return call<{ sesion: MesaSesion }>("/api/mesas/para-llevar", "POST", {
     nombre_cliente: nombreCliente,
     observacion,
+    costo_delivery: costoDelivery,
   });
 }
 

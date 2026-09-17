@@ -28,8 +28,27 @@ export default function NuevoParaLlevarModal({ onCreado, onCerrar }: NuevoParaLl
   const [modalidad, setModalidad] = useState<Modalidad>("retira");
   const [direccion, setDireccion] = useState("");
   const [notaExtra, setNotaExtra] = useState("");
+  // Costo de delivery: los chips son atajos frecuentes, "Otro" despliega un
+  // input para cualquier monto. 0 = sin costo cargado todavía; se puede
+  // editar después desde el detalle del pedido si se olvidó ahora.
+  const [costoDelivery, setCostoDelivery] = useState<number>(0);
+  const [otroCostoAbierto, setOtroCostoAbierto] = useState(false);
+  const [otroCostoTexto, setOtroCostoTexto] = useState("");
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const chipsCostoDelivery = [10000, 15000, 20000];
+  function formatGs(n: number) { return `Gs. ${n.toLocaleString("es-PY")}`; }
+  function elegirCosto(monto: number) {
+    setCostoDelivery(monto);
+    setOtroCostoAbierto(false);
+    setOtroCostoTexto("");
+  }
+  function guardarOtroCosto() {
+    const n = Math.max(0, Math.round(Number(otroCostoTexto.replace(/[^\d]/g, "")) || 0));
+    setCostoDelivery(n);
+    setOtroCostoAbierto(false);
+  }
 
   async function crear() {
     setError(null);
@@ -53,7 +72,11 @@ export default function NuevoParaLlevarModal({ onCreado, onCerrar }: NuevoParaLl
     const notaFinal = partes.join(" ");
 
     setCreando(true);
-    const r = await crearParaLlevar(nombre.trim() || null, notaFinal);
+    const r = await crearParaLlevar(
+      nombre.trim() || null,
+      notaFinal,
+      modalidad === "delivery" ? costoDelivery : 0,
+    );
     setCreando(false);
     if (!r.success) { setError(r.error); return; }
     onCreado(r.sesion.id);
@@ -128,6 +151,77 @@ export default function NuevoParaLlevarModal({ onCreado, onCerrar }: NuevoParaLl
                 className={`mt-1 text-sm ${inputBase}`}
                 onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
               />
+
+              {/* Costo de delivery: chips rápidos + "Otro" que despliega un
+                  input para cargar cualquier monto. Se puede dejar en 0 y
+                  editar después desde el detalle del pedido. */}
+              <label className="mt-3 block text-xs font-medium text-slate-600">Costo delivery</label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {chipsCostoDelivery.map((monto) => (
+                  <button
+                    key={monto}
+                    type="button"
+                    disabled={creando}
+                    onClick={() => elegirCosto(monto)}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                      costoDelivery === monto && !otroCostoAbierto
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {formatGs(monto)}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={creando}
+                  onClick={() => setOtroCostoAbierto((v) => !v)}
+                  className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                    otroCostoAbierto || (costoDelivery > 0 && !chipsCostoDelivery.includes(costoDelivery))
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  Otro
+                </button>
+              </div>
+
+              {otroCostoAbierto && (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={otroCostoTexto}
+                    onChange={(e) => setOtroCostoTexto(e.target.value)}
+                    placeholder="Ej: 12000"
+                    disabled={creando}
+                    autoFocus
+                    className={`text-sm ${inputBase}`}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); guardarOtroCosto(); } }}
+                  />
+                  <button
+                    type="button"
+                    disabled={creando}
+                    onClick={guardarOtroCosto}
+                    className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              )}
+
+              {costoDelivery > 0 && !otroCostoAbierto && (
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Se cobra <strong>{formatGs(costoDelivery)}</strong> aparte del pedido.
+                  <button
+                    type="button"
+                    onClick={() => elegirCosto(0)}
+                    className="ml-2 text-red-600 hover:underline"
+                  >
+                    Quitar
+                  </button>
+                </p>
+              )}
             </>
           )}
 

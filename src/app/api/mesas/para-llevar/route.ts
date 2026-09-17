@@ -34,9 +34,15 @@ export async function POST(request: NextRequest) {
     const nombreCliente = o.nombre_cliente == null || o.nombre_cliente === "" ? null : String(o.nombre_cliente).slice(0, 120);
     // Nota del pedido: la lee cocina en la comanda (ej. "delivery", "retira 21hs").
     const observacion = o.observacion == null || o.observacion === "" ? null : String(o.observacion).slice(0, 200);
+    // Costo de delivery: entero >= 0. Ignora valores inválidos y sigue con 0.
+    const costoDelivRaw = Number(o.costo_delivery);
+    const costoDelivery = Number.isFinite(costoDelivRaw) && costoDelivRaw > 0 ? Math.round(costoDelivRaw) : 0;
 
     const schema = await fetchDataSchemaForEmpresaId(auth.empresa_id);
-    const sesion = await abrirSesionParaLlevarPg(schema, auth.empresa_id, auth.usuarioCatalogId ?? null, nombreCliente, observacion);
+    const sesion = await abrirSesionParaLlevarPg(
+      schema, auth.empresa_id, auth.usuarioCatalogId ?? null,
+      nombreCliente, observacion, costoDelivery,
+    );
     return NextResponse.json(successResponse({ sesion }));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "No se pudo crear la sesión Para llevar.";

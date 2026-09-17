@@ -358,7 +358,9 @@ export async function abrirSesionParaLlevarPg(
   mozoId: string | null,
   nombreCliente: string | null,
   /** Nota del pedido, visible en la comanda de cocina (ej. "delivery"). */
-  observacion: string | null = null
+  observacion: string | null = null,
+  /** Costo delivery informado en la creación (entero, guaraníes). */
+  costoDelivery: number = 0,
 ): Promise<MesaSesion> {
   const sb = createServiceRoleClientWithDbSchema(schema);
 
@@ -383,6 +385,7 @@ export async function abrirSesionParaLlevarPg(
       observacion: (observacion ?? "").trim() || null,
       estado: "abierta",
       mozo_id: mozoId,
+      costo_delivery: Math.max(0, Math.round(costoDelivery)),
     })
     .select(SESION_COLS)
     .single();
