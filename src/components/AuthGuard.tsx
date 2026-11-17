@@ -15,7 +15,7 @@ import {
   pathRequiresModuleSlug,
 } from "@/lib/modulos/route-slug-map";
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/login", "/bloqueado"];
 
 type ModuleAccess = {
   superAdmin: boolean;

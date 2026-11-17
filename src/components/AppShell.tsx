@@ -6,7 +6,7 @@ import Header from "./layout/Header";
 import MobileBottomNav from "./layout/MobileBottomNav";
 import ConfirmDialogHost from "./ui/ConfirmDialog";
 
-const STANDALONE_ROUTES = ["/login"];
+const STANDALONE_ROUTES = ["/login", "/bloqueado"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
