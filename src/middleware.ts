@@ -4,7 +4,7 @@ import { errorResponse } from "@/lib/api/response";
 import {
   BLOQUEO_PAGO_MENSAJE,
   BLOQUEO_PAGO_PATH,
-  ERP_BLOQUEADO_POR_FALTA_DE_PAGO,
+  erpBloqueadoPorFaltaDePago,
 } from "@/lib/bloqueo-pago";
 
 /**
@@ -13,7 +13,7 @@ import {
  */
 export async function middleware(request: NextRequest) {
   // ===== ERP bloqueado por falta de pago (ver src/lib/bloqueo-pago.ts) =====
-  if (ERP_BLOQUEADO_POR_FALTA_DE_PAGO) {
+  if (await erpBloqueadoPorFaltaDePago(request.headers)) {
     if (request.nextUrl.pathname.startsWith("/api/")) {
       return NextResponse.json(errorResponse(BLOQUEO_PAGO_MENSAJE), { status: 402 });
     }
@@ -24,6 +24,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(bloqueoUrl, 307);
     }
     return NextResponse.next({ request });
+  }
+  if (request.nextUrl.pathname === BLOQUEO_PAGO_PATH) {
+    // Ya desbloqueado: quien tenga el aviso abierto vuelve al login.
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
+    return NextResponse.redirect(loginUrl, 307);
   }
 
   let supabaseResponse = NextResponse.next({ request });

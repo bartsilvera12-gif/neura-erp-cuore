@@ -1,12 +1,11 @@
 import Image from "next/image";
-import { redirect } from "next/navigation";
-import { BLOQUEO_PAGO_MENSAJE, ERP_BLOQUEADO_POR_FALTA_DE_PAGO } from "@/lib/bloqueo-pago";
+import { BLOQUEO_PAGO_MENSAJE } from "@/lib/bloqueo-pago";
 
-/** Aviso de acceso suspendido por falta de pago. El middleware manda acá todo el ERP. */
+/**
+ * Aviso de acceso suspendido por falta de pago. Decide el middleware: manda acá
+ * todo el ERP mientras está bloqueado y saca de acá a /login cuando se desbloquea.
+ */
 export default function BloqueadoPage() {
-  // Ya desbloqueado: quien tenga esta pestaña abierta vuelve al login.
-  if (!ERP_BLOQUEADO_POR_FALTA_DE_PAGO) redirect("/login");
-
   return (
     <div className="zentra-login-bg flex min-h-dvh w-full flex-col items-center justify-center px-4 py-5">
       <div className="flex w-full max-w-sm flex-col items-center gap-4">
